@@ -1,0 +1,8 @@
+{
+  "rootNode":"#root",
+  "rootFileName":"App",
+  "pageTile":{
+    "loading":"loading",
+    "loaded":"Pulsor"
+  }
+}

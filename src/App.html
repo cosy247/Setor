@@ -1,0 +1,32 @@
+<div class="main">
+	<checker-board -props="subProps" class="game"></checker-board>
+	<div class="history"></div>
+</div>
+
+<script>
+  pulsor.import("checker-board").from("src/components/CheckerBoard");
+	
+	let subProps = pulsor.bind([1,2,3,4,5]);
+	
+	return {
+		subProps
+	}
+</script>
+
+<style>
+	.main {
+		display: flex;
+		justify-content: center;
+		margin-top: calc(50vh - 150px);
+	}
+	.game {
+		height: "{{Math.random() * 100}}px";
+		width: 300px;
+	}
+	.history {
+		height: 300px;
+		width: 300px;
+		margin-left: 20px;
+		border: solid 1px black;
+	}
+</style>
