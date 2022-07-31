@@ -1,121 +1,83 @@
-(function () {
-  const APP_CONFIG_PATH = "pulsor.config.json";
+(function (functory) {
+  window.Pulsor = functory();
+})(() => {
+  class Lsnrctl {
+    static callback = null;
+    static isDuty = true;
+    static Proxy(target, handler) {
+      let proxy = new Proxy(target, handler);
+      proxy[Symbol.toStringTag] = "Lsnrctl.Proxy";
+      return proxy;
+    }
+    // = new Proxy(Proxy, {
+    //   construct(target, argumentsList) {
+    //     let res = new target(...argumentsList);
+    //     res[Symbol.toStringTag] = "Lsnrctl.Proxy";
+    //     return res;
+    //   },
+    // });
 
-  let _renderCall = null;
-
-  function _setRenderCall(callback, ...props) {
-    (function renderCall() {
-      _renderCall = renderCall;
-      callback(...props);
-      _renderCall = null;
-    })();
-  }
-
-  function _getFileCont(url, type, callback) {
-    fetch(url)
-      .then((res) => {
-        if (res.status == 200) {
-          if (typeof res[type] == "function") {
-            return res[type]();
-          } else {
-            return res.text();
-          }
-        } else {
-          return "";
-        }
-      })
-      .then((data) => callback(data));
-  }
-
-  function _getProxyHandler() {
-    let resetCalls = {};
-    let propTypes = {};
-    return {
-      get: (target, key, receiver) => {
-        if (_renderCall) {
-          if (resetCalls[key]) {
-            if (!resetCalls[key].includes(_renderCall)) {
-              resetCalls[key].push(_renderCall);
-            }
-          } else {
-            resetCalls[key] = [_renderCall];
-          }
-        }
-        if (!propTypes.hasOwnProperty(key)) {
-          propTypes[key] = false;
-          let value = Reflect.get(target, key);
-          if (typeof value == "object") {
-            propTypes[key] = value.constructor;
-            Reflect.set(target, key, new Proxy(value, _getProxyHandler()), receiver);
-          }
-        }
-        return Reflect.get(target, key, receiver);
-      },
-      set: (target, key, newValue, receiver) => {
-        if (!_renderCall) {
-          let value = Reflect.get(target, key);
-          if (propTypes[key] && typeof newValue != "undefined" && newValue.constructor == propTypes[key]) {
-            if (propTypes[key] == Array) {
-              let length = value.length;
-              for (let index = 0; index < newValue.length; index++) {
-                Reflect.set(value, index, newValue[index], receiver);
-              }
-              if (length != newValue.length) {
-                Reflect.set(value, "length", newValue.length, receiver);
-                resetCalls[key] && resetCalls[key].forEach((call) => call());
-              }
-            } else {
-              for (const k in newValue) {
-                if (newValue.hasOwnProperty(k)) {
-                  Reflect.set(value, k, newValue[k], receiver);
+    static getProxyHandler(callbacks = {}, callbackKey = "data") {
+      return {
+        get: (target, key, receiver) => {
+          if (Lsnrctl.isDuty && typeof key !== "symbol") {
+            if (Lsnrctl.callback) {
+              if (callbacks[`${callbackKey}.${key}`]) {
+                if (!callbacks[`${callbackKey}.${key}`].includes(Lsnrctl.callback)) {
+                  callbacks[`${callbackKey}.${key}`].push(Lsnrctl.callback);
                 }
+              } else {
+                callbacks[`${callbackKey}.${key}`] = [Lsnrctl.callback];
               }
-              for (const k in value) {
-                if (value.hasOwnProperty(k) && !newValue.hasOwnProperty(k)) {
-                  Reflect.deleteProperty(value, k, receiver);
-                }
-              }
-              resetCalls[key] && resetCalls[key].forEach((call) => call());
             }
-            return true;
-          } else {
-            propTypes[key] = false;
-            let reflect = Reflect.set(target, key, newValue, receiver);
-            resetCalls[key] && resetCalls[key].forEach((call) => call());
+          }
+          let value = Reflect.get(target, key, receiver);
+          if (value !== null && typeof value == "object") {
+            if (Object.prototype.toString.call(value) !== "[object Lsnrctl.Proxy]") {
+              target[key] = value = Lsnrctl.Proxy(value, Lsnrctl.getProxyHandler(callbacks, `${callbackKey}.${key}`));
+            }
+          }
+          return value;
+        },
+        set: (target, key, newValue, receiver) => {
+          let reflect = true;
+          if (!Lsnrctl.callback) {
+            // if (newValue !== null && typeof newValue === "object") {
+            //   newValue = Lsnrctl.Proxy(newValue, Lsnrctl.getProxyHandler(callbacks, callbacks));
+            // }
+            Reflect.set(target, key, newValue, receiver);
+            if (Object.prototype.toString.call(target) == "[object Array]") {
+              Reflect.set(target, "length", target.length, receiver);
+            }
+            if (typeof key !== "symbol") {
+              callbacks[`${callbackKey}.${key}`] && callbacks[`${callbackKey}.${key}`].forEach((call) => call());
+            }
+          }
+          return reflect;
+        },
+        deleteProperty(target, key, receiver) {
+          if (!Lsnrctl.callback) {
+            let reflect = Reflect.deleteProperty(target, key, receiver);
+            callbacks[`${callbackKey}.${key}`] && callbacks[`${callbackKey}.${key}`].forEach((call) => call());
             return reflect;
           }
-        }
-        return false;
-      },
-      deleteProperty(target, key, receiver) {
-        if (!_renderCall) {
-          let reflect = Reflect.deleteProperty(target, key, receiver);
-          resetCalls[key] && resetCalls[key].forEach((call) => call());
-          return reflect;
-        }
-        return false;
-      },
-    };
+          return false;
+        },
+      };
+    }
+
+    static getProxyData(data) {
+      if (typeof data == "object") {
+        return new Proxy(data, Lsnrctl.getProxyHandler());
+      } else {
+        return new Proxy({ v: data }, Lsnrctl.getProxyHandler());
+      }
+    }
   }
 
-  function _getValueFun(valueString, funProps = [], funValues = []){
-    return () => {
-      return new Function(...funProps, `return (${valueString.replaceAll("\n", "\\n")})`).apply(undefined, funValues);
-    };
-  }
-
-  class Component {
-    static tagNames = [];
-
-    rootShadow;
-    innerHTML;
-    pulsor;
-
-    renderCall = null;
-    renderDataKeys = [];
-    renderDataValues = [];
-    renderForKeys = [];
-    renderForValues = [];
+  class Render {
+    dataKeys = [];
+    dataValues = [];
 
     forKeys = [];
     forValues = [];
@@ -123,59 +85,20 @@
     ifConditions = [];
     lastIfElement = null;
 
-    constructor(root, html) {
-      this.rootNode = root;
-      this.innerHTML = html;
-      this.pulsor = new Pulsor(root.props);
-      this.attachShadow();
-    }
-
-    attachShadow() {
-      this.rootShadow = this.rootNode.attachShadow({ mode: "open" });
-      this.rootShadow.innerHTML = this.innerHTML;
-
-      let allScripts = Array.from(this.rootShadow.querySelectorAll("script"));
-      let allScriptText = allScripts.map((script) => script.innerHTML).join(";");
-      let renderData = new Function("pulsor", allScriptText)(this.pulsor);
-
-      if (typeof renderData == "object") {
-        this.renderDataKeys = Object.keys(renderData);
-        this.renderDataValues = Object.values(renderData);
+    constructor(root, data) {
+      if (typeof data == "object") {
+        this.dataKeys = Object.keys(data);
+        this.dataValues = Object.values(data);
       }
-
-      allScripts.forEach((script) => script.parentNode.removeChild(script));
-      this.renderShadow();
-      this.addIndexStyle();
-    }
-
-    addIndexStyle() {
-      let css = document.createElement("link");
-      css.rel = "stylesheet";
-      css.href = "src/index.css";
-      this.rootShadow.appendChild(css);
-    }
-
-    renderShadow() {
-      if (typeof this.pulsor.beforeRender == "function") {
-        this.pulsor.beforeRender();
-      }
-
-      this.renderNode(this.rootShadow);
-
-      if (typeof this.pulsor.rendered == "function") {
-        this.pulsor.rendered();
-      }
+      this.renderNode(root);
     }
 
     renderNode(node) {
-      if (node.nodeName == "#comment" || node.nodeName == "STYLE") {
+      if (node.nodeName == "#comment") {
         return;
-      } else if (node.nodeName == "#text") {
+      }
+      if (node.nodeName == "#text") {
         this.renderText(node);
-      } else if (node.nodeName == "#document-fragment") {
-        for (const child of Array.from(node.childNodes)) {
-          this.renderNode(child);
-        }
       } else {
         if (node.getAttribute("-for")) {
           this.renderAttr(node, "-for", node.getAttribute("-for"));
@@ -183,8 +106,10 @@
           for (const child of Array.from(node.childNodes)) {
             this.renderNode(child);
           }
-          for (const attr of Array.from(node.attributes)) {
-            this.renderAttr(node, attr.name, attr.value);
+          if (Object.hasOwnProperty.call(node, "attributes")) {
+            for (const attr of Array.from(node.attributes)) {
+              this.renderAttr(node, attr.name, attr.value);
+            }
           }
         }
       }
@@ -204,7 +129,7 @@
 
     renderTextCotnt(node, valueString) {
       let valueFun = this.getValueFun(valueString);
-      _setRenderCall(() => {
+      Lsnrctl.callback = () => {
         let value = valueFun();
         if (typeof value == "undefined") {
           node.data = "";
@@ -213,7 +138,9 @@
         } else {
           node.data = value;
         }
-      });
+      };
+      Lsnrctl.callback();
+      Lsnrctl.callback = null;
     }
 
     renderAttr(node, attrName, valueString) {
@@ -228,8 +155,6 @@
           this.renderEvent(node, attrName, valueString);
         } else if (mark == "-") {
           this.renderSpecial(node, attrName, valueString);
-        } else if (mark == "^") {
-          this.renderProp(node, attrName, valueString);
         }
       }
     }
@@ -239,16 +164,16 @@
         this.renderTwoWayBind(node, attrName.slice(1), valueString);
       } else {
         let valueFun = this.getValueFun(valueString);
-        _setRenderCall(() => {
+        Lsnrctl.callback = () => {
           let value = valueFun();
-          node.setAttribute(attrName, value);
-          // if (typeof value == "object" || typeof value == "function") {
-          //   node[attrName] = value;
-          // } else {
-          //   node.setAttribute(attrName, value);
-          // }
-          // node[attrName] = value;
-        });
+          if (typeof value == "object" || typeof value == "function") {
+            node[attrName] = value;
+          } else {
+            node.setAttribute(attrName, value);
+          }
+        };
+        Lsnrctl.callback();
+        Lsnrctl.callback = null;
       }
     }
 
@@ -268,9 +193,11 @@
       if (node.type == "checkbox") {
         model = "change";
         let bindArr = valueFun();
-        _setRenderCall(() => {
+        Lsnrctl.callback = () => {
           node.checked = bindArr.includes(node.lable);
-        });
+        };
+        Lsnrctl.callback();
+        Lsnrctl.callback = null;
         setValueFun = () => {
           if (node.checked && !bindArr.includes(node.lable)) {
             bindArr.push(node.lable);
@@ -281,9 +208,11 @@
         };
       } else if (node.type == "radio") {
         model = "change";
-        _setRenderCall(() => {
+        Lsnrctl.callback = () => {
           node.checked = valueFun() == node.lable;
-        });
+        };
+        Lsnrctl.callback();
+        Lsnrctl.callback = null;
         if (forValueFun) {
           setValueFun = () => {
             if (node.checked) {
@@ -300,9 +229,11 @@
         }
       } else {
         model = "input";
-        _setRenderCall(() => {
+        Lsnrctl.callback = () => {
           node.value = valueFun();
-        });
+        };
+        Lsnrctl.callback();
+        Lsnrctl.callback = null;
         if (forValueFun) {
           setValueFun = () => {
             forValueFun(node.value);
@@ -326,14 +257,6 @@
       node.addEventListener(attrName, valueFun);
     }
 
-    renderProp(node, attrName, valueString) {
-      if(typeof node.props == "object") {
-        node.props[attrName] = this.getValueFun(valueString)();
-      }else {
-        node.props = {attrName:this.getValueFun(valueString)()};
-      }
-    }
-
     renderSpecial(node, attrName, valueString) {
       if (attrName == "for") {
         this.renderSpecial_for(node, valueString);
@@ -349,7 +272,8 @@
     }
 
     renderSpecial_for(node, valueString) {
-      let [itemName, forDataString] = valueString.split(" in ");
+      let [kv, forDataString] = valueString.split(" in ");
+      let [k, v] = kv.split(",");
 
       let forAnchor = document.createComment("");
       node.parentNode.insertBefore(forAnchor, node);
@@ -357,15 +281,20 @@
 
       let forNodes = [];
       let forData = null;
-      _setRenderCall(() => {
-        if (forData == null) {
-          forData = this.getValueFun(forDataString)();
-          if (typeof forData == "number") {
-            forData = new Array(forData);
-          }
+      Lsnrctl.callback = () => {
+        // if (forData == null) {
+        //   forData = this.getValueFun(forDataString)();
+        //   if (typeof forData == "number") {
+        //     forData = new Array(forData);
+        //   }
+        // }
+        forData = this.getValueFun(forDataString)();
+        if (typeof forData == "number") {
+          forData = new Array(forData).fill(null).map((_, x) => x);
         }
-
         let dataLength = forData.length;
+
+        // Lsnrctl.isDuty = false;
 
         if (dataLength > forNodes.length) {
           for (let index = forNodes.length; index < dataLength; index++) {
@@ -373,21 +302,32 @@
             forNodes.push(cloneNode);
             forAnchor.parentNode.insertBefore(cloneNode, forAnchor);
 
-            this.renderForKeys.push(itemName);
-            this.renderForValues.push({
-              k:index,
-              get v(){
+            this.forKeys.push(k, v);
+
+            this.forValues.push(() => index);
+            if (typeof forData[index] == "object") {
+              this.forValues.push(() => {
                 return forData[index];
-              },
-              set v(newV){
-                forData[index] = newV;
-              }
-            });
+              });
+            } else {
+              this.forValues.push(() => {
+                return {
+                  get v() {
+                    return forData[index];
+                  },
+                  set v(v) {
+                    forData[index] = v;
+                  },
+                };
+              });
+            }
 
             this.renderNode(cloneNode);
 
-            this.renderForKeys.pop();
-            this.renderForValues.pop();
+            this.forKeys.pop();
+            this.forKeys.pop();
+            this.forValues.pop();
+            this.forValues.pop();
           }
         } else if (dataLength < forNodes.length) {
           for (let index = dataLength; index < forNodes.length; index++) {
@@ -395,15 +335,19 @@
           }
           forNodes.length = dataLength;
         }
-      });
+      };
+      Lsnrctl.callback();
+      Lsnrctl.callback = null;
     }
 
     renderSpecial_show(node, valueString) {
       let valueFun = this.getValueFun(valueString);
       let display = node.style.display;
-      _setRenderCall(() => {
+      Lsnrctl.callback = () => {
         node.style.display = valueFun() ? display : "none";
-      });
+      };
+      Lsnrctl.callback();
+      Lsnrctl.callback = null;
     }
 
     renderSpecial_if(node, valueString) {
@@ -414,13 +358,15 @@
       this.ifConditions = [valueFun];
       this.lastIfElement = node;
 
-      _setRenderCall(() => {
+      Lsnrctl.callback = () => {
         if (valueFun()) {
           ifAnchor.parentElement.insertBefore(node, ifAnchor);
         } else {
           ifAnchor.parentElement.removeChild(node);
         }
-      });
+      };
+      Lsnrctl.callback();
+      Lsnrctl.callback = null;
     }
 
     renderSpecial_elif(node, valueString) {
@@ -437,7 +383,7 @@
       this.ifConditions.push(valueFun);
       this.lastIfElement = node;
 
-      _setRenderCall(() => {
+      Lsnrctl.callback = () => {
         for (const condition of ifConditions) {
           if (condition()) {
             elifAnchor.parentElement.removeChild(node);
@@ -445,7 +391,9 @@
           }
         }
         elifAnchor.parentElement.insertBefore(node, elifAnchor);
-      });
+      };
+      Lsnrctl.callback();
+      Lsnrctl.callback = null;
     }
 
     renderSpecial_else(node) {
@@ -462,7 +410,7 @@
       this.ifConditions = [];
       this.lastIfElement = null;
 
-      _setRenderCall(() => {
+      Lsnrctl.callback = () => {
         for (const condition of ifConditions) {
           if (condition()) {
             elseAnchor.parentElement.removeChild(node);
@@ -470,69 +418,61 @@
           }
         }
         elseAnchor.parentElement.insertBefore(node, elseAnchor);
-      });
+      };
+      Lsnrctl.callback();
+      Lsnrctl.callback = null;
     }
 
     getValueFun(valueString) {
-      let funProps = [...this.renderDataKeys, ...this.renderForKeys];
-      let funValues = [...this.renderDataValues, ...this.renderForValues];
-      return _getValueFun(valueString, funProps, funValues);
+      valueString = valueString.replaceAll("\n", "\\n");
+      let funProps = [...this.dataKeys, ...this.forKeys];
+      let funValues = [...this.dataValues];
+      let forValueFuns = [...this.forValues];
+      return () => new Function(...funProps, `return (${valueString})`).call(null,...funValues,...forValueFuns.map(v => v()));
     }
   }
 
-  class Pulsor {
-    props = null;
-
-    constructor(props) {
-      this.props = props;
+  return class Pulsor {
+    static #beforeCreate = [];
+    static get beforeCreate() {
+      return Pulsor.#beforeCreate;
+    }
+    static set beforeCreate(callback) {
+      if (typeof callback == "function") {
+        return Pulsor.#beforeCreate.push(callback);
+      }
     }
 
-    import(componentName) {
-      return {
-        from(componentPath) {
-          _getFileCont(componentPath + ".html", "text", (html) => {
-            window.customElements.define(
-              componentName,
-              class extends HTMLElement {
-                constructor() {
-                  super();
-                  new Component(this, html);
-                }
-              }
-            );
-          });
-        },
-      };
+    static #created = [];
+    static get created() {
+      return Pulsor.#created;
     }
-
-    bind(data) {
-      return new Proxy(data, _getProxyHandler());
+    static set created(callback) {
+      if (typeof callback == "function") {
+        return Pulsor.#created.push(callback);
+      }
     }
-  }
-
-  class App {
-    config = {};
 
     constructor() {
-      this.getConfig();
+      if (Pulsor.beforeCreate) {
+        Pulsor.beforeCreate.forEach((callback) => callback.call(this));
+      }
+      if (Pulsor.created) {
+        Pulsor.created.forEach((callback) => callback.call(this));
+      }
     }
 
-    getConfig() {
-      _getFileCont(APP_CONFIG_PATH, "json", (conf) => {
-        this.config = conf;
-        this.renderRoot();
-      });
+    static bind(data) {
+      return Lsnrctl.getProxyData(data);
     }
 
-    renderRoot() {
-      let rootNode = document.querySelector(this.config.rootNode);
-      _getFileCont(`src/${this.config.rootFileName}.html`, "text", (html) => {
-        new Component(rootNode, html);
-      });
+    static render(root, data) {
+      if (root instanceof Element) {
+        new Render(root, data);
+      } else if (typeof root == "string") {
+        root = document.querySelector(root);
+        root && new Render(root, data);
+      }
     }
-  }
-
-  document.addEventListener("DOMContentLoaded", () => {
-    new App();
-  });
-})();
+  };
+});
