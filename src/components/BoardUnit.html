@@ -1,0 +1,22 @@
+<div part="div" class="root" @click="data.press()">
+  <p ref="r">{{data.t}}</p>
+</div>
+
+<script>
+  let data = pulsor.bind({
+    t:"",
+    press() {
+      data.t = pulsor.props.pressChess(pulsor.props.index);
+    }
+  })
+  return { data };
+</script>
+
+<style>
+  .root {
+    width: 100%;
+    height: 100%;
+    font-size: 23pw;
+  }
+  
+</style>
