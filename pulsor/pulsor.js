@@ -36,6 +36,7 @@
           return value;
         },
         set: (target, key, newValue, receiver) => {
+          console.log("set",key,newValue);
           let reflect = true;
           if (!Lsnrctl.callback) {
             Reflect.set(target, key, newValue, receiver);
@@ -69,8 +70,6 @@
   }
 
   class Render {
-    pulsor = null;
-
     dataKeys = [];
     dataValues = [];
 
@@ -80,8 +79,7 @@
     ifConditions = [];
     lastIfElement = null;
 
-    constructor(pulsor, data, root) {
-      this.pulsor = pulsor;
+    constructor(root, data) {
       if (typeof data == "object") {
         this.dataKeys = Object.keys(data);
         this.dataValues = Object.values(data);
@@ -102,11 +100,11 @@
           for (const child of Array.from(node.childNodes)) {
             this.renderNode(child);
           }
-          // if (Object.hasOwnProperty.call(node, "attributes")) {
-          for (const attr of Array.from(node.attributes)) {
-            this.renderAttr(node, attr.name, attr.value);
+          if (Object.hasOwnProperty.call(node, "attributes")) {
+            for (const attr of Array.from(node.attributes)) {
+              this.renderAttr(node, attr.name, attr.value);
+            }
           }
-          // }
         }
       }
     }
@@ -125,7 +123,7 @@
 
     renderTextCotnt(node, valueString) {
       let valueFun = this.getValueFun(valueString);
-      this.setLsnrctlCallback(() => {
+      Lsnrctl.callback = () => {
         let value = valueFun();
         if (typeof value == "undefined") {
           node.data = "";
@@ -134,7 +132,9 @@
         } else {
           node.data = value;
         }
-      }, node);
+      };
+      Lsnrctl.callback();
+      Lsnrctl.callback = null;
     }
 
     renderAttr(node, attrName, valueString) {
@@ -156,59 +156,19 @@
     renderBind(node, attrName, valueString) {
       if (node.tagName.toUpperCase() == "INPUT" && attrName[0] == ":") {
         this.renderTwoWayBind(node, attrName.slice(1), valueString);
-      } else if (attrName == "class") {
-        this.renderBind_class(node, valueString);
-      } else if (attrName == "style") {
-        this.renderBind_style(node, valueString);
       } else {
         let valueFun = this.getValueFun(valueString);
-        this.setLsnrctlCallback(() => {
+        Lsnrctl.callback = () => {
           let value = valueFun();
           if (typeof value == "object" || typeof value == "function") {
             node[attrName] = value;
           } else {
             node.setAttribute(attrName, value);
           }
-        }, node);
+        };
+        Lsnrctl.callback();
+        Lsnrctl.callback = null;
       }
-    }
-
-    renderBind_class(node, valueString) {
-      let className = node.className;
-      let valueFun = this.getValueFun(valueString);
-      this.setLsnrctlCallback(() => {
-        node.className = className;
-        let value = valueFun();
-        if (value !== null && typeof value == "object") {
-          for (const className in value) {
-            if (Object.hasOwnProperty.call(value, className)) {
-              if (value[className]) {
-                node.classList.add(className);
-              }
-            }
-          }
-        } else {
-          node.className += " " + value;
-        }
-      }, node);
-    }
-
-    renderBind_style(node, valueString) {
-      let style = node.style;
-      let valueFun = this.getValueFun(valueString);
-      this.setLsnrctlCallback(() => {
-        node.style = style;
-        let value = valueFun();
-        if (value !== null && typeof value == "object") {
-          for (const styleName in value) {
-            if (Object.hasOwnProperty.call(value, styleName)) {
-              node.style[styleName] = value[styleName];
-            }
-          }
-        } else {
-          node.cssText += value;
-        }
-      }, node);
     }
 
     renderTwoWayBind(node, type, valueString) {
@@ -227,9 +187,11 @@
       if (node.type == "checkbox") {
         model = "change";
         let bindArr = valueFun();
-        this.setLsnrctlCallback(() => {
+        Lsnrctl.callback = () => {
           node.checked = bindArr.includes(node.lable);
-        }, node);
+        };
+        Lsnrctl.callback();
+        Lsnrctl.callback = null;
         setValueFun = () => {
           if (node.checked && !bindArr.includes(node.lable)) {
             bindArr.push(node.lable);
@@ -240,9 +202,11 @@
         };
       } else if (node.type == "radio") {
         model = "change";
-        this.setLsnrctlCallback(() => {
+        Lsnrctl.callback = () => {
           node.checked = valueFun() == node.lable;
-        }, node);
+        };
+        Lsnrctl.callback();
+        Lsnrctl.callback = null;
         if (forValueFun) {
           setValueFun = () => {
             if (node.checked) {
@@ -259,9 +223,11 @@
         }
       } else {
         model = "input";
-        this.setLsnrctlCallback(() => {
+        Lsnrctl.callback = () => {
           node.value = valueFun();
-        }, node);
+        };
+        Lsnrctl.callback();
+        Lsnrctl.callback = null;
         if (forValueFun) {
           setValueFun = () => {
             forValueFun(node.value);
@@ -300,17 +266,17 @@
     }
 
     renderSpecial_for(node, valueString) {
-      let [vk, forDataString] = valueString.split(" in ");
-      let [v, k] = vk.split(",");
+      let [kv, forDataString] = valueString.split(" in ");
+      let [k, v] = kv.split(",");
 
-      let forAnchor = document.createComment(" render.for ");
+      let forAnchor = document.createComment("");
       node.parentNode.insertBefore(forAnchor, node);
       node.parentNode.removeChild(node);
 
-      let getForDataFun = this.getValueFun(forDataString);
       let forNodes = [];
 
-      this.setLsnrctlCallback(() => {
+      Lsnrctl.callback = () => {
+        let getForDataFun = this.getValueFun(forDataString);
         let forData = getForDataFun();
 
         if (typeof forData == "number") {
@@ -318,13 +284,17 @@
         }
         let dataLength = forData.length;
 
+        Lsnrctl.isDuty = false;
+
         if (dataLength > forNodes.length) {
           for (let index = forNodes.length; index < dataLength; index++) {
             let cloneNode = node.cloneNode(true);
             forNodes.push(cloneNode);
             forAnchor.parentNode.insertBefore(cloneNode, forAnchor);
 
-            this.forKeys.push(v);
+            this.forKeys.push(k, v);
+
+            this.forValues.push(() => index);
             if (typeof forData[index] == "object") {
               this.forValues.push(() => {
                 return getForDataFun()[index];
@@ -341,11 +311,7 @@
                 };
               });
             }
-
-            if (k) {
-              this.forKeys.push(k);
-              this.forValues.push(() => index);
-            }
+            Lsnrctl.isDuty = true;
 
             this.renderNode(cloneNode);
 
@@ -360,15 +326,20 @@
           }
           forNodes.length = dataLength;
         }
-      }, node);
+      };
+      Lsnrctl.callback();
+      Lsnrctl.callback = null;
     }
 
     renderSpecial_show(node, valueString) {
       let valueFun = this.getValueFun(valueString);
       let display = node.style.display;
-      this.setLsnrctlCallback(() => {
+      if(display == "none") display = "unset";
+      Lsnrctl.callback = () => {
         node.style.display = valueFun() ? display : "none";
-      }, node);
+      };
+      Lsnrctl.callback();
+      Lsnrctl.callback = null;
     }
 
     renderSpecial_if(node, valueString) {
@@ -379,13 +350,15 @@
       this.ifConditions = [valueFun];
       this.lastIfElement = node;
 
-      this.setLsnrctlCallback(() => {
+      Lsnrctl.callback = () => {
         if (valueFun()) {
           ifAnchor.parentElement.insertBefore(node, ifAnchor);
         } else {
           ifAnchor.parentElement.removeChild(node);
         }
-      }, node);
+      };
+      Lsnrctl.callback();
+      Lsnrctl.callback = null;
     }
 
     renderSpecial_elif(node, valueString) {
@@ -402,7 +375,7 @@
       this.ifConditions.push(valueFun);
       this.lastIfElement = node;
 
-      this.setLsnrctlCallback(() => {
+      Lsnrctl.callback = () => {
         for (const condition of ifConditions) {
           if (condition()) {
             elifAnchor.parentElement.removeChild(node);
@@ -410,7 +383,9 @@
           }
         }
         elifAnchor.parentElement.insertBefore(node, elifAnchor);
-      }, node);
+      };
+      Lsnrctl.callback();
+      Lsnrctl.callback = null;
     }
 
     renderSpecial_else(node) {
@@ -427,7 +402,7 @@
       this.ifConditions = [];
       this.lastIfElement = null;
 
-      this.setLsnrctlCallback(() => {
+      Lsnrctl.callback = () => {
         for (const condition of ifConditions) {
           if (condition()) {
             elseAnchor.parentElement.removeChild(node);
@@ -435,14 +410,6 @@
           }
         }
         elseAnchor.parentElement.insertBefore(node, elseAnchor);
-      }, node);
-    }
-
-    setLsnrctlCallback(callback, node) {
-      Lsnrctl.callback = () => {
-        this.pulsor.renderingNode = node;
-        callback();
-        this.pulsor.renderingNode = null;
       };
       Lsnrctl.callback();
       Lsnrctl.callback = null;
@@ -461,18 +428,15 @@
   }
 
   return class Pulsor {
-    static beforeCreate = [];
-    static created = [];
+    beforeCreate = [];
+    created = [];
 
-    renderingNode = null;
-
-    constructor(root, data) {
-      if (Object.prototype.toString.call(Pulsor.beforeCreate) == "[object Array]") {
-        Pulsor.beforeCreate.forEach((callback) => callback.call(this));
+    constructor() {
+      if (Object.prototype.toString.call(this.beforeCreate) == "[object Array]") {
+        this.beforeCreate.forEach((callback) => callback.call(this));
       }
-      this.render(root, data);
-      if (Object.prototype.toString.call(Pulsor.created) == "[object Array]") {
-        Pulsor.created.forEach((callback) => callback.call(this));
+      if (Object.prototype.toString.call(this.created) == "[object Array]") {
+        this.created.forEach((callback) => callback.call(this));
       }
     }
 
@@ -480,12 +444,12 @@
       return Lsnrctl.getProxyData(data);
     }
 
-    render(root, data) {
+    static render(root, data) {
       if (root instanceof Element) {
-        new Render(this, data, root);
+        new Render(root, data);
       } else if (typeof root == "string") {
         root = document.querySelector(root);
-        root && new Render(this, data, root);
+        root && new Render(root, data);
       }
     }
   };
