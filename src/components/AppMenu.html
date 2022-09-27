@@ -1,0 +1,15 @@
+<div class="menuBox">
+  <p -for="m in menu.list" class="menu-item" @click="menu.activeId = m.id">{{m.name}}</p>
+</div>
+
+<script>
+  let menu = Pulsor.bind({
+    list: [
+      { id: 0, name: "Audios" },
+      { id: 1, name: "PackHtml" },
+    ],
+    activeId: 0,
+  });
+
+  pulsor.cite({ menu });
+</script>
