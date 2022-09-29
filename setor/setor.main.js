@@ -90,7 +90,7 @@
           cbKey.indexOf(callbackKey) == 0 && calls.push(callbacks[cbKey]) && console.log(cbKey);;
         }
       }
-      
+
       if (Lsnrctl.isCalling || !calls) return;
       Lsnrctl.isCalling = true;
       if (Lsnrctl.autoRefresh) {
@@ -433,20 +433,16 @@
     renderEvent_clk(node, valueString, adorns) {
       if (Render.supportTouch) {
         let valueFun = this.getValueFun(valueString);
-        let isClick = true, isClickTimeoutId = 0;
+        let isMove = true, startTime = 0;
         this.renderEvent_normal(node, "touchstart", event => {
-          clearTimeout(isClickTimeoutId);
-          isClick = true;
-          isClickTimeoutId = setTimeout(() => {
-            isClick = false;
-          }, 300);
+          isMove = false;
+          startTime = Date.now();
         }, adorns);
+        this.renderEvent_normal(node, "touchmove", event => {
+          isMove = true;
+        });
         this.renderEvent_normal(node, "touchend", event => {
-          event.preventDefault();
-          event.returnValue = false;
-          isClick && valueFun();
-
-          return false;
+          Date.now() - startTime <= 150 && !isMove && valueFun();
         }, adorns);
       } else {
         this.renderEvent_normal(node, "click", valueString, adorns);
@@ -462,7 +458,7 @@
           event.returnValue = false;
 
           clickCount++;
-          if(clickCount === 1) {
+          if (clickCount === 1) {
             isDbclickTimeoutId = setTimeout(() => {
               clickCount = 0;
             }, 500);
@@ -475,9 +471,9 @@
           event.returnValue = false;
 
           clickCount++;
-          if(clickCount === 1) {
+          if (clickCount === 1) {
             clickCount = 0
-          } else if(clickCount === 4) {
+          } else if (clickCount === 4) {
             clearTimeout(isDbclickTimeoutId);
             clickCount = 0;
             valueFun(event);
@@ -499,7 +495,7 @@
           event.returnValue = false;
 
           clickCount++;
-          if(clickCount === 1) {
+          if (clickCount === 1) {
             isDbclickTimeoutId = setTimeout(() => {
               clickCount = 0;
             }, 500);
@@ -512,9 +508,9 @@
           event.returnValue = false;
 
           clickCount++;
-          if(clickCount === 1) {
+          if (clickCount === 1) {
             clickCount = 0
-          } else if(clickCount === 4) {
+          } else if (clickCount === 4) {
             clearTimeout(isDbclickTimeoutId);
             clickCount = 0;
             valueFun(event);
@@ -541,7 +537,7 @@
             }
           })
           adorns.includes("once") && eventMap.get(node).delete(valueFun);
-        }, { passive: false,cancelable:false })
+        }, { passive: false, cancelable: false })
       }
 
       if (!this.events[eventType].has(node)) {
@@ -549,7 +545,7 @@
       }
       this.events[eventType].get(node).add(valueFun);
     }
-
+    
     // renderSpecials
     renderSpecials(node, specialAttrs) {
       for (let attrAllName in specialAttrs) {
@@ -596,7 +592,7 @@
         forData = getForDataFun();
         let isNumberFor = typeof forData === "number";
         let dataLength = isNumberFor ? forData : forData.length;
-        
+
         Lsnrctl.callback = null;
         if (dataLength > forNodes.length) {
           for (let index = forNodes.length; index < dataLength; index++) {
