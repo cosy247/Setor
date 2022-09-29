@@ -1,21 +1,19 @@
-<app-menu :data-dd="Math.random" :data-menu="{a:123}"></app-menu>
-<!-- audio -->
-<app-audios></app-audios>
-<!-- packHtml -->
-<app-packhtml></app-packhtml>
-
-<div -rise.opacity.left="false">0000000000</div>
+<div>
+  <p>{{data.name}}</p>
+  <p -for="v in data.sore.addr" @clk="v.v++">{{v.v}}</p>
+  <p -for="v in data.sore.price" @clk="v.v++">{{v.v}}</p>
+</div>
 
 <script>
-  pulsor.props;
+  setor.props;
 
-  let menu = Pulsor.bind({
-    list: [
-      { id: 0, name: "Audios" },
-      { id: 1, name: "PackHtml" },
-    ],
-    activeId: 0,
+  window.data = Setor.bind({
+    name:"wendy",
+    sore: {
+      addr: ["北京","上海"],
+      price: [12,32]
+    }
   });
 
-  pulsor.cite({menu});
+  setor.cite({data});
 </script>

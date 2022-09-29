@@ -1,6 +1,6 @@
 (function (functory) {
 
-  if (Setor) functory(Setor);
+  Setor && functory(Setor);
 
 })((Setor) => {
   const APP_CONFIG_PATH = "app.config.json";

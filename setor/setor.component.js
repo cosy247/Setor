@@ -1,9 +1,8 @@
 (function (functory) {
 
-  if (Setor) functory(Setor);
+  Setor && functory(Setor);
 
 })((Setor) => {
-
   let componentHtmlMap = {};
   let rootCss = null;
 
@@ -14,11 +13,11 @@
     let allScriptText = allScripts.map(script => script.innerHTML).join(";");
     allScripts.forEach(script => script.parentNode.removeChild(script));
 
-    let pulsor = new Setor();
-    pulsor.shadow = shadow;
-    pulsor.props = root.dataset;
-    new Function("pulsor", allScriptText)(pulsor);
-    Setor.render(shadow, pulsor.data);
+    let setor = new Setor();
+    setor.shadow = shadow;
+    setor.props = root.dataset;
+    new Function("setor", allScriptText)(setor);
+    Setor.render(shadow, setor.data);
 
     if (rootCss) {
       let link = document.createElement("link");
