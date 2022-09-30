@@ -15,9 +15,13 @@
 
     let setor = new Setor();
     setor.shadow = shadow;
-    setor.props = root.dataset;
-    new Function("setor", allScriptText)(setor);
-    Setor.render(shadow, setor.data);
+    setor.props = root.retainAttrs || {};
+
+    new Function(allScriptText).apply(setor);
+    
+    Setor.render(shadow, setor.cites);
+    setor.isRendered = true;
+    typeof setor.renderd === "function" && setor.renderd();
 
     if (rootCss) {
       let link = document.createElement("link");
@@ -65,15 +69,20 @@
 
   Object.assign(Setor.prototype, {
     shadow: null,
-    props: null,
+    props: {},
+    cites: {},
+
+    isRendered: false,
+    renderd: null,
+
     cite(data) {
-      this.data = data;
+      this.cites = Setor.bind(data, this);
     },
     get(selector) {
-      return this.shadow.querySelector(selector);
+      return this.isRendered && this.shadow.querySelector(selector);
     },
     getAll(selector) {
-      return this.shadow.querySelectorAll(selector);
-    }
+      return this.isRendered && this.shadow.querySelectorAll(selector);
+    },
   });
 })

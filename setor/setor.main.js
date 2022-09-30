@@ -24,13 +24,13 @@
     static isCalling = false;
 
     static refreshCalls = new Set();
-    static autoRefresh = true;
+    static autoRefresh = false;
 
     static proxySymbol = Symbol("isProxy");
 
     static lastValue = null;
 
-    static getProxyHandler(callbacks = {}, callbackKey = "data") {
+    static getProxyHandler(that, callbacks = {}, callbackKey = "data") {
       return {
         get: (target, key, receiver) => {
           if (typeof key !== "symbol" && Lsnrctl.callback) {
@@ -44,24 +44,32 @@
             }
           }
 
-          let value = Reflect.get(target, key, receiver);
-          if (typeof key !== "symbol" && value !== null && value !== undefined && !Object.hasOwn(value, Lsnrctl.proxySymbol)) {
-            let constructor = value.constructor;
-            if ([Array, Object, Set].includes(constructor)) {
-              value = new Proxy(value, Lsnrctl.getProxyHandler(callbacks, `${callbackKey}.${key}`));
-              value[Lsnrctl.proxySymbol] = true;
-              Reflect.set(target, key, value, receiver);
-            }
-          }
-
           Lsnrctl.lastValue = {
-            get() {
-              return value;
-            },
             set(v) {
               Reflect.set(target, key, v, receiver);
+              Lsnrctl.handCalls(callbacks, `${callbackKey}.${key}`);
             }
           };
+
+          let value = Reflect.get(target, key, receiver);
+          if (typeof key !== "symbol" && value !== null) {
+            if(typeof value == "object") {
+              if (Object.hasOwn(target, key) && !Object.hasOwn(value, Lsnrctl.proxySymbol)) {
+                value = new Proxy(value, Lsnrctl.getProxyHandler(that, callbacks, `${callbackKey}.${key}`));
+                Reflect.set(target, key, value, receiver);
+                value[Lsnrctl.proxySymbol] = true;
+              }
+            } else if(typeof value == "function") {
+              if (Object.hasOwn(target, key) && !Object.hasOwn(value, Lsnrctl.proxySymbol)) {
+                value = () => {
+                  value.apply(that);
+                  Lsnrctl.autoRefresh || Lsnrctl.refresh();
+                };
+                Reflect.set(target, key, value, receiver);
+                value[Lsnrctl.proxySymbol] = true;
+              }
+            }
+          }
 
           return value;
         },
@@ -69,14 +77,14 @@
           if (Reflect.get(target, key, receiver) === newValue && key !== "length") return true;
           let reflect = Reflect.set(target, key, newValue, receiver);
           if (typeof key !== "symbol") {
-            this.handCalls(callbacks, `${callbackKey}.${key}`);
+            Lsnrctl.handCalls(callbacks, `${callbackKey}.${key}`);
           }
           return reflect;
         },
         deleteProperty(target, key, receiver) {
           let reflect = Reflect.deleteProperty(target, key, receiver);
           if (typeof key !== "symbol" && Reflect.has(target, key, receiver)) {
-            this.handCalls(callbacks, `${callbackKey}.${key}`);
+            Lsnrctl.handCalls(callbacks, `${callbackKey}.${key}`);
           }
           return reflect;
         },
@@ -84,34 +92,41 @@
     }
 
     static handCalls(callbacks, callbackKey) {
-      let calls = [];
-      for (const cbKey in callbacks) {
-        if (Object.hasOwnProperty.call(callbacks, cbKey)) {
-          cbKey.indexOf(callbackKey) == 0 && calls.push(callbacks[cbKey]) && console.log(cbKey);;
+      if (Lsnrctl.isCalling) return;
+      Lsnrctl.isCalling = true;
+
+      if (Lsnrctl.autoRefresh) {
+        for (const cbKey in callbacks) {
+          if (Object.hasOwnProperty.call(callbacks, cbKey) && cbKey.indexOf(callbackKey) == 0) {
+            callbacks[cbKey].forEach(call => {
+              Lsnrctl.callback = call;
+              call();
+              Lsnrctl.callback = null;
+            })
+          }
+        }
+      } else {
+        for (const cbKey in callbacks) {
+          if (Object.hasOwnProperty.call(callbacks, cbKey) && cbKey.indexOf(callbackKey) == 0) {
+            console.log(cbKey);
+            Lsnrctl.refreshCalls.add(...callbacks[cbKey]);
+          }
         }
       }
 
-      if (Lsnrctl.isCalling || !calls) return;
-      Lsnrctl.isCalling = true;
-      if (Lsnrctl.autoRefresh) {
-        calls.forEach(cs => {
-          cs.forEach(c => {
-            Lsnrctl.callback = c;
-            c();
-            Lsnrctl.callback = null;
-          })
-        });
-      } else {
-        calls.forEach(call => Lsnrctl.refreshCalls.add(call));
-      }
       Lsnrctl.isCalling = false;
     }
 
-    static getProxyData(data) {
+    static getProxyData(data, that) {
       if (typeof data === "object") {
-        return new Proxy(data, Lsnrctl.getProxyHandler());
+        return new Proxy(data, Lsnrctl.getProxyHandler(that));
+      } else if (typeof data === "function") {
+        return () => {
+          data.apply(that);
+          Lsnrctl.autoRefresh || Lsnrctl.refresh();
+        };
       } else {
-        return new Proxy({ v: data }, Lsnrctl.getProxyHandler());
+        return new Proxy({ v: data }, Lsnrctl.getProxyHandler(that));
       }
     }
 
@@ -122,11 +137,13 @@
     static refresh() {
       if (Lsnrctl.autoRefresh) return;
       Lsnrctl.isCalling = true;
+      
       Lsnrctl.refreshCalls.forEach(call => {
         Lsnrctl.callback = call;
         call();
       });
       Lsnrctl.clearRefresh();
+
       Lsnrctl.isCalling = false;
     }
   }
@@ -380,11 +397,11 @@
           setValueFun = Lsnrctl.lastValue.set;
         }
       }
-
       Array.from(new Set(type.split("."))).forEach(tp => {
-        tp === "model" && (tp = model);
+        tp === "" && (tp = model);
         node.addEventListener(tp, () => {
           setValueFun && setValueFun(node.value);
+          Lsnrctl.autoRefresh || Lsnrctl.refresh();
         });
       });
     }
@@ -545,7 +562,7 @@
       }
       this.events[eventType].get(node).add(valueFun);
     }
-    
+
     // renderSpecials
     renderSpecials(node, specialAttrs) {
       for (let attrAllName in specialAttrs) {
@@ -905,8 +922,8 @@
   }
 
   return class {
-    static bind(data) {
-      return Lsnrctl.getProxyData(data);
+    static bind(data, that) {
+      return Lsnrctl.getProxyData(data, that);
     }
 
     static render(selector, data = {}) {

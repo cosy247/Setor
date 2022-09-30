@@ -1,25 +1,31 @@
 <div>
-  <p>{{data.name}}</p>
-  <p -for="v in data.sore.addr" @clk="v.v++">{{v.v}}</p>
+  <!-- <app-menu></app-menu> -->
+
+  <p>{{sore}}</p>
+  <!-- <p -for="v in data.sore.addr" @clk="v.v++">{{v.v}}</p>
   <p -for="v in data.sore.price" @clk="v.v++">{{v.v}}</p>
+  <button @clk="hand()">button</button> -->
+  <!-- <p>{{name}}</p> -->
+  <input type="text" ::="sore.value">
+  <button @clk="hand()">button</button>
 </div>
 
 <script>
-  setor.props;
-
-  window.data = Setor.bind({
+  console.log(this);
+  this.cite({
     name:"wendy",
     sore: {
-      addr: ["北京","上海"],
-      price: [12,32]
+      value: 123,
+      addr: ["北京", "上海"],
+      price: [12, 32],
+    },
+    hand() {
+      console.log("-----hand",this);
+      this.cites.sore.addr = this.cites.sore.value;
     }
   });
 
-  let a = Setor.bind(function(){
-
-  })
-
-  console.log(a);
-
-  setor.cite({data});
+  this.renderd = function() {
+    console.log(this.get("p"));
+  }
 </script>
