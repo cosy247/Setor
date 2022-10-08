@@ -1,42 +1,28 @@
-<app-menu :data-dd="Math.random" :data-menu="{a:123}"></app-menu>
+<app-menu></app-menu>
 <!-- audio -->
 <app-audios></app-audios>
 <!-- packHtml -->
 <app-packhtml></app-packhtml>
 
-<input type="file" name="" id="files" @change="getBase64()">
-
+<input type="file" name="" id="files" @change="FILE.getBase64()">
+<textarea cols="30" rows="10">{{FILE.base64}}</textarea>
+<p>{{FILE.base64}}</p>
 
 <script>
-  this.cite({
-    menu: {
-      list: [
-        { id: 0, name: "Audios" },
-        { id: 1, name: "PackHtml" },
-      ],
-      activeId: 0,
-    },
+  const FILE = setor.bind({
+    base64 : "1",
     getBase64() {
-      console.log(this);
-      files.onchange = function () { //定义一个匿名函数  当文件按钮使用鼠标点击后触发该事件
-        //我们可以看到这里打印的是一个数组文件
-        console.log(event.target.files)
-        //由于我们只是举例说明 因此这里就只获取第一个就行了
-        var file = event.target.files[0]; //获取到第一个待上传的文件信息
-        var reader = new FileReader(); //初始化读取文件内置的API方法
-        reader.onload = function (e) { //当文件加载完成后调用
-          //我们可以看到文件转为Base64后的格式
-          console.log(e.target.result); //e.target.resul  就是我们需要的base64 ！！！
-          if ((e.target.result).includes('image')) {//当文件为图片时，可以在页面使用一个img看效果
-            document.write(`<img id="imgs" src="" alt="">`);
-            imgs.src = e.target.result;
-          }
+      let file = setor.event.target.files[0]; //获取到第一个待上传的文件信息
+      if (file) {
+        let reader = new FileReader(); //初始化读取文件内置的API方法
+        reader.onload = function () { //当文件加载完成后调用
+          FILE.base64 = reader.result; //e.target.resul  就是我们需要的base64 
+          setor.refresh();
         }
-        if (file) {
-          reader.readAsDataURL(file);
-        }
+        reader.readAsDataURL(file);
       }
     }
+  })
 
-  });
+  setor.cite({ FILE });
 </script>

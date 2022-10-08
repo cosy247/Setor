@@ -13,7 +13,7 @@
 </div>
 
 <script>
-  this.cite({
+  setor.cite({
     packHtml: {
       download() {
         let ifrDocument = pulsor.get(this.iframe).contentDocument.documentElement;
@@ -74,7 +74,6 @@
         let fullDate = date.getFullYear() + String(date.getMonth() + 1).padStart(2, "0") + String(date.getDate()).padStart(2, "0");
         let name = v.match(/(?<=_).*?(?=\/)/);
         this.fileName = name + "_lyq_" + fullDate;
-        console.log(this.fileName);
       },
       get src() {
         return this._src || "";

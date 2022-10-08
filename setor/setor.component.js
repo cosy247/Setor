@@ -17,7 +17,7 @@
     setor.shadow = shadow;
     setor.props = root.retainAttrs || {};
 
-    new Function(allScriptText).apply(setor);
+    new Function("setor", allScriptText)(setor);
     
     Setor.render(shadow, setor.cites);
     setor.isRendered = true;
@@ -71,18 +71,38 @@
     shadow: null,
     props: {},
     cites: {},
+    event: null,
 
     isRendered: false,
     renderd: null,
 
-    cite(data) {
-      this.cites = Setor.bind(data, this);
+    bind(data) {
+      return Setor.bind(data);
     },
+
+    cite(cites) {
+      if(Object.prototype.toString.call(cites) !== "[object Object]") {
+        return;
+      }
+      Object.assign(this.cites, cites);
+    },
+
     get(selector) {
       return this.isRendered && this.shadow.querySelector(selector);
     },
+
     getAll(selector) {
       return this.isRendered && this.shadow.querySelectorAll(selector);
     },
+
+    
+
+    refresh() {
+      Setor.refresh();
+    },
+
+    clearRefresh() {
+      Setor.clearRefresh();
+    }
   });
 })

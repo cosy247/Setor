@@ -30,7 +30,7 @@
 
     static recorderValue = null;
 
-    static getProxyHandler(that, callbacks = {}, callbackKey = "data") {
+    static getProxyHandler(callbacks = {}, callbackKey = "data") {
       return {
         get: (target, key, receiver) => {
           if (typeof key !== "symbol" && Lsnrctl.callback) {
@@ -52,24 +52,11 @@
           });
 
           let value = Reflect.get(target, key, receiver);
-          if (typeof key !== "symbol" && value !== null) {
-            if(typeof value == "object") {
-              if (Object.hasOwn(target, key) && !Object.hasOwn(value, Lsnrctl.proxySymbol)) {
-                
-                value = new Proxy(value, Lsnrctl.getProxyHandler(that, callbacks, `${callbackKey}.${key}`));
-                Reflect.set(target, key, value, receiver);
-                value[Lsnrctl.proxySymbol] = true;
-              }
-            } else if(typeof value == "function") {
-              if (Object.hasOwn(target, key) && !Object.hasOwn(value, Lsnrctl.proxySymbol)) {
-                let newFun = (function() {
-                  console.log(value, that);
-                  value.apply(that);
-                  Lsnrctl.autoRefresh || Lsnrctl.refresh();
-                });
-                console.log(Reflect.set(target, key, newFun, receiver));
-                newFun[Lsnrctl.proxySymbol] = true;
-              }
+          if (typeof key !== "symbol" && value !== null && typeof value == "object") {
+            if (Object.hasOwn(target, key) && !Object.hasOwn(value, Lsnrctl.proxySymbol)) {
+              value = new Proxy(value, Lsnrctl.getProxyHandler(callbacks, `${callbackKey}.${key}`));
+              Reflect.set(target, key, value, receiver);
+              value[Lsnrctl.proxySymbol] = true;
             }
           }
 
@@ -118,16 +105,13 @@
       Lsnrctl.isCalling = false;
     }
 
-    static getProxyData(data, that) {
-      if (typeof data === "object") {
-        return new Proxy(data, Lsnrctl.getProxyHandler(that || window));
+    static getProxyData(data) {
+      if (typeof data === "object" && data !== null) {
+        return new Proxy(data, Lsnrctl.getProxyHandler());
       } else if (typeof data === "function") {
-        return () => {
-          data.apply(that || window);
-          Lsnrctl.autoRefresh || Lsnrctl.refresh();
-        };
+        return data;
       } else {
-        return new Proxy({ v: data }, Lsnrctl.getProxyHandler(that || window));
+        return new Proxy({ v: data }, Lsnrctl.getProxyHandler());
       }
     }
 
@@ -138,7 +122,7 @@
     static refresh() {
       if (Lsnrctl.autoRefresh) return;
       Lsnrctl.isCalling = true;
-      
+
       Lsnrctl.refreshCalls.forEach(call => {
         Lsnrctl.callback = call;
         call();
@@ -165,6 +149,7 @@
 
     putNodes = {};
 
+    event = null;
     events = {};
     static supportTouch = "ontouchstart" in document;
 
@@ -551,7 +536,10 @@
           event = event || window.event;
           eventMap.forEach((funs, n) => {
             if (n.contains(event.target)) {
-              funs.forEach(f => f(event));
+              funs.forEach(f => {
+                Render.event = event;
+                f();
+              });
             }
           })
           adorns.includes("once") && eventMap.get(node).delete(valueFun);
@@ -938,6 +926,11 @@
       if (data !== null && data.constructor !== Object) throw "Render.Data not is a undefined or object!";
       root && new Render(root, data);
     }
+
+    get event() {
+      return Render.event;
+    }
+    set event(v) { };
 
     static watch(watchPropsCall, callback) {
       Lsnrctl.callback = () => {
