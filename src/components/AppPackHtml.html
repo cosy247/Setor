@@ -1,9 +1,9 @@
 <div class="showBox">
   <label for="htmlUrl">Input url:</label>
-  <input id="htmlUrl" type="text" ::blur="packHtml.src">
+  <input id="htmlUrl" type="text" ::="packHtml.src">
   <br />
   <label for="fileName">Input file name:</label>
-  <input id="fileName" type="text" ::blur="packHtml.fileName">
+  <input id="fileName" type="text" ::="packHtml.fileName">
   <br />
   <input type="button" value="download" @click="packHtml.download()">
   <!-- <iframe :src="packHtml.src" frameborder="1"></iframe> -->
@@ -13,91 +13,90 @@
 </div>
 
 <script>
-  let packHtml = Pulsor.bind({
-    download() {
-      let ifrDocument = pulsor.get(this.iframe).contentDocument.documentElement;
-      let allScript = ifrDocument.querySelectorAll("script");
-      let allStyle = ifrDocument.querySelectorAll("link[rel='stylesheet']");
-      this.allLoadedNum = allScript.length + allStyle.length;
-      this.loadedNum = 0;
+  this.cite({
+    packHtml: {
+      download() {
+        let ifrDocument = pulsor.get(this.iframe).contentDocument.documentElement;
+        let allScript = ifrDocument.querySelectorAll("script");
+        let allStyle = ifrDocument.querySelectorAll("link[rel='stylesheet']");
+        this.allLoadedNum = allScript.length + allStyle.length;
+        this.loadedNum = 0;
 
-      allScript.forEach(s => {
-        if (s.src) {
-          fetch(s.src)
-            .then(data => data.text())
-            .then(data => {
-              s.innerHTML = "\n" + data.replace(/\n/, "") + "\n";
-              this.loadedNum++;
-            });
-          s.setAttribute("name", s.src);
-          s.removeAttribute("src");
-        } else {
-          if (!s.getAttribute("name")) {
-            s.parentNode.removeChild(s);
-          }
-          this.loadedNum++;
-        }
-      });
-
-      allStyle.forEach(s => {
-        if (s.href) {
-          fetch(s.href)
-            .then(data => data.text())
-            .then(data => {
-              let style = document.createElement("style");
-              style.innerHTML = "\n" + data.replace(/\s+/g, " ") + "\n";
-              s.setAttribute("name", s.href);
-              s.parentNode.insertBefore(style, s);
-              s.parentNode.removeChild(s);
-              this.loadedNum++;
-            });
-        } else {
-          if (!s.getAttribute("name")) {
-            s.parentNode.removeChild(s);
+        allScript.forEach(s => {
+          if (s.src) {
+            fetch(s.src)
+              .then(data => data.text())
+              .then(data => {
+                s.innerHTML = "\n" + data.replace(/\n/, "") + "\n";
+                this.loadedNum++;
+              });
+            s.setAttribute("name", s.src);
+            s.removeAttribute("src");
           } else {
-            let style = document.createElement("style");
-            style.innerHTML = s.innerHTML;
-            console.log(style);
-            document.head.appendChild(style);
-            s.parentNode.removeChild(s);
+            if (!s.getAttribute("name")) {
+              s.parentNode.removeChild(s);
+            }
+            this.loadedNum++;
           }
-          this.loadedNum++;
-        }
-      });
-    },
-    fileName: "index",
-    iframe: "#packIframe",
-    set src(v) {
-      this._src = v;
-      console.log(this._src);
-      let date = new Date();
-      let fullDate = date.getFullYear() + String(date.getMonth() + 1).padStart(2,"0") + String(date.getDate()).padStart(2,"0");
-      let name = v.match(/(?<=_).*?(?=\/)/);
-      this.fileName = name + "_lyq_" + fullDate;
-      console.log(this.fileName);
-    },
-    get src() {
-      return this._src;
-    },
-    allLoadedNum: 0,
-    get loadedNum() {
-      return this._loadedNum || 0;
-    },
-    set loadedNum(v) {
-      this._loadedNum = v;
-      console.log(v, this.allLoadedNum);
-      if (v == this.allLoadedNum) {
-        let innerHTML = pulsor.get(this.iframe).contentDocument.documentElement.innerHTML;
-        let downHTML = "<!DOCTYPE html> <html lang='en'>" + innerHTML + "</html>";
-        var aTag = document.createElement("a");
-        var blob = new Blob([downHTML]);
-        aTag.download = this.fileName + ".html";
-        aTag.href = URL.createObjectURL(blob);
-        aTag.click();
-        URL.revokeObjectURL(blob);
-      }
-    },
-  });
+        });
 
-  pulsor.cite({packHtml});
+        allStyle.forEach(s => {
+          if (s.href) {
+            fetch(s.href)
+              .then(data => data.text())
+              .then(data => {
+                let style = document.createElement("style");
+                style.innerHTML = "\n" + data.replace(/\s+/g, " ") + "\n";
+                s.setAttribute("name", s.href);
+                s.parentNode.insertBefore(style, s);
+                s.parentNode.removeChild(s);
+                this.loadedNum++;
+              });
+          } else {
+            if (!s.getAttribute("name")) {
+              s.parentNode.removeChild(s);
+            } else {
+              let style = document.createElement("style");
+              style.innerHTML = s.innerHTML;
+              console.log(style);
+              document.head.appendChild(style);
+              s.parentNode.removeChild(s);
+            }
+            this.loadedNum++;
+          }
+        });
+      },
+      fileName: "index",
+      iframe: "#packIframe",
+      set src(v) {
+        this._src = v;
+        let date = new Date();
+        let fullDate = date.getFullYear() + String(date.getMonth() + 1).padStart(2, "0") + String(date.getDate()).padStart(2, "0");
+        let name = v.match(/(?<=_).*?(?=\/)/);
+        this.fileName = name + "_lyq_" + fullDate;
+        console.log(this.fileName);
+      },
+      get src() {
+        return this._src || "";
+      },
+      allLoadedNum: 0,
+      get loadedNum() {
+        return this._loadedNum || 0;
+      },
+      set loadedNum(v) {
+        this._loadedNum = v;
+        console.log(v, this.allLoadedNum);
+        if (v == this.allLoadedNum) {
+          let innerHTML = pulsor.get(this.iframe).contentDocument.documentElement.innerHTML;
+          let downHTML = "<!DOCTYPE html> <html lang='en'>" + innerHTML + "</html>";
+          var aTag = document.createElement("a");
+          var blob = new Blob([downHTML]);
+          aTag.download = this.fileName + ".html";
+          aTag.href = URL.createObjectURL(blob);
+          aTag.click();
+          URL.revokeObjectURL(blob);
+        }
+      },
+    }
+  });
 </script>

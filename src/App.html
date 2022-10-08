@@ -1,31 +1,42 @@
-<div>
-  <!-- <app-menu></app-menu> -->
+<app-menu :data-dd="Math.random" :data-menu="{a:123}"></app-menu>
+<!-- audio -->
+<app-audios></app-audios>
+<!-- packHtml -->
+<app-packhtml></app-packhtml>
 
-  <p>{{sore}}</p>
-  <!-- <p -for="v in data.sore.addr" @clk="v.v++">{{v.v}}</p>
-  <p -for="v in data.sore.price" @clk="v.v++">{{v.v}}</p>
-  <button @clk="hand()">button</button> -->
-  <!-- <p>{{name}}</p> -->
-  <input type="text" ::="sore.value">
-  <button @clk="hand()">button</button>
-</div>
+<input type="file" name="" id="files" @change="getBase64()">
+
 
 <script>
-  console.log(this);
   this.cite({
-    name:"wendy",
-    sore: {
-      value: 123,
-      addr: ["北京", "上海"],
-      price: [12, 32],
+    menu: {
+      list: [
+        { id: 0, name: "Audios" },
+        { id: 1, name: "PackHtml" },
+      ],
+      activeId: 0,
     },
-    hand() {
-      console.log("-----hand",this);
-      this.cites.sore.addr = this.cites.sore.value;
+    getBase64() {
+      console.log(this);
+      files.onchange = function () { //定义一个匿名函数  当文件按钮使用鼠标点击后触发该事件
+        //我们可以看到这里打印的是一个数组文件
+        console.log(event.target.files)
+        //由于我们只是举例说明 因此这里就只获取第一个就行了
+        var file = event.target.files[0]; //获取到第一个待上传的文件信息
+        var reader = new FileReader(); //初始化读取文件内置的API方法
+        reader.onload = function (e) { //当文件加载完成后调用
+          //我们可以看到文件转为Base64后的格式
+          console.log(e.target.result); //e.target.resul  就是我们需要的base64 ！！！
+          if ((e.target.result).includes('image')) {//当文件为图片时，可以在页面使用一个img看效果
+            document.write(`<img id="imgs" src="" alt="">`);
+            imgs.src = e.target.result;
+          }
+        }
+        if (file) {
+          reader.readAsDataURL(file);
+        }
+      }
     }
-  });
 
-  this.renderd = function() {
-    console.log(this.get("p"));
-  }
+  });
 </script>

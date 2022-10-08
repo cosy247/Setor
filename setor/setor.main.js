@@ -28,7 +28,7 @@
 
     static proxySymbol = Symbol("isProxy");
 
-    static lastValue = null;
+    static recorderValue = null;
 
     static getProxyHandler(that, callbacks = {}, callbackKey = "data") {
       return {
@@ -44,29 +44,31 @@
             }
           }
 
-          Lsnrctl.lastValue = {
+          Lsnrctl.recorderValue || (Lsnrctl.recorderValue = {
             set(v) {
               Reflect.set(target, key, v, receiver);
               Lsnrctl.handCalls(callbacks, `${callbackKey}.${key}`);
             }
-          };
+          });
 
           let value = Reflect.get(target, key, receiver);
           if (typeof key !== "symbol" && value !== null) {
             if(typeof value == "object") {
               if (Object.hasOwn(target, key) && !Object.hasOwn(value, Lsnrctl.proxySymbol)) {
+                
                 value = new Proxy(value, Lsnrctl.getProxyHandler(that, callbacks, `${callbackKey}.${key}`));
                 Reflect.set(target, key, value, receiver);
                 value[Lsnrctl.proxySymbol] = true;
               }
             } else if(typeof value == "function") {
               if (Object.hasOwn(target, key) && !Object.hasOwn(value, Lsnrctl.proxySymbol)) {
-                value = () => {
+                let newFun = (function() {
+                  console.log(value, that);
                   value.apply(that);
                   Lsnrctl.autoRefresh || Lsnrctl.refresh();
-                };
-                Reflect.set(target, key, value, receiver);
-                value[Lsnrctl.proxySymbol] = true;
+                });
+                console.log(Reflect.set(target, key, newFun, receiver));
+                newFun[Lsnrctl.proxySymbol] = true;
               }
             }
           }
@@ -108,7 +110,6 @@
       } else {
         for (const cbKey in callbacks) {
           if (Object.hasOwnProperty.call(callbacks, cbKey) && cbKey.indexOf(callbackKey) == 0) {
-            console.log(cbKey);
             Lsnrctl.refreshCalls.add(...callbacks[cbKey]);
           }
         }
@@ -119,14 +120,14 @@
 
     static getProxyData(data, that) {
       if (typeof data === "object") {
-        return new Proxy(data, Lsnrctl.getProxyHandler(that));
+        return new Proxy(data, Lsnrctl.getProxyHandler(that || window));
       } else if (typeof data === "function") {
         return () => {
-          data.apply(that);
+          data.apply(that || window);
           Lsnrctl.autoRefresh || Lsnrctl.refresh();
         };
       } else {
-        return new Proxy({ v: data }, Lsnrctl.getProxyHandler(that));
+        return new Proxy({ v: data }, Lsnrctl.getProxyHandler(that || window));
       }
     }
 
@@ -370,31 +371,31 @@
             bindData[value] = node.checked;
           }
         } else {
-          Lsnrctl.lastValue = null;
+          Lsnrctl.recorderValue = null;
           this.setLsnrctlCallback(() => {
             node.checked = valueFun();
           }, node);
-          if (Lsnrctl.lastValue) {
-            setValueFun = Lsnrctl.lastValue.set;
+          if (Lsnrctl.recorderValue) {
+            setValueFun = Lsnrctl.recorderValue.set;
           }
         }
       } else if (node.type === "radio") {
         model = "change";
-        Lsnrctl.lastValue = null;
+        Lsnrctl.recorderValue = null;
         this.setLsnrctlCallback(() => {
           node.checked = valueFun() === node.value;
         }, node);
-        if (Lsnrctl.lastValue) {
-          setValueFun = Lsnrctl.lastValue.set;
+        if (Lsnrctl.recorderValue) {
+          setValueFun = Lsnrctl.recorderValue.set;
         }
       } else {
         model = "input";
-        Lsnrctl.lastValue = null;
+        Lsnrctl.recorderValue = null;
         this.setLsnrctlCallback(() => {
           node.value = valueFun();
         }, node);
-        if (Lsnrctl.lastValue) {
-          setValueFun = Lsnrctl.lastValue.set;
+        if (Lsnrctl.recorderValue) {
+          setValueFun = Lsnrctl.recorderValue.set;
         }
       }
       Array.from(new Set(type.split("."))).forEach(tp => {

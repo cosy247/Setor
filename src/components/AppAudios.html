@@ -1,6 +1,5 @@
-
 <div class="showBox">
-  <p class="menu-item" @click="audios.download()">Download</p>
+  <p class="menu-item" @click="download()">Download</p>
   <table>
     <tr>
       <th>id</th>
@@ -11,25 +10,24 @@
       <th>loop</th>
       <th>selet</th>
     </tr>
-    <tr -for="v in audios.data">
+    <tr -for="v in data">
       <td>{{v.id}}</td>
       <td>{{v.name}}</td>
       <td>{{v.catogary}}</td>
       <td><audio :src="v.base64 || v.src" controls></audio></td>
       <td><input ::model="v.downName || v.name"></td>
       <td><input type="checkbox" ::model="v.loop"></td>
-      <td><input type="checkbox" ::model="audios.select" :lable="v.id"></td>
+      <td><input type="checkbox" ::model="select" :lable="v.id"></td>
     </tr>
   </table>
 </div>
 
 <script>
-  let audios = Pulsor.bind({
+  this.cite({
     download() {
       downAudios(this.select);
     },
     data: [],
     select: [],
-  });
-  pulsor.cite({audios})
+  })
 </script>
