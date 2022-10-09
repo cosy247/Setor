@@ -9,16 +9,17 @@
   function renderShadow(root, shadow, html) {
     shadow.innerHTML = html;
 
-    let allScripts = Array.from(shadow.querySelectorAll("script"));
-    let allScriptText = allScripts.map(script => script.innerHTML).join(";");
-    allScripts.forEach(script => script.parentNode.removeChild(script));
-
     let setor = new Setor();
     setor.shadow = shadow;
     setor.props = root.retainAttrs || {};
 
-    new Function("setor", allScriptText)(setor);
-    
+    let allScripts = Array.from(shadow.querySelectorAll("script"));
+    allScripts.forEach(script => {
+      let setorName = script.getAttribute("setor") || "setor";
+      new Function(setorName, script.innerHTML)(setor);
+      script.parentNode.removeChild(script);
+    })
+
     Setor.render(shadow, setor.cites);
     setor.isRendered = true;
     typeof setor.renderd === "function" && setor.renderd();
@@ -51,11 +52,18 @@
                 let shadow = this.attachShadow({ mode: "open" });
                 if (componentHtmlMap[componentName] === true) {
                   fetch(componentPath + ".html")
-                    .then(data => data.text())
+                    .then(data => {
+                      if (data.status == 200) {
+                        return data.text();
+                      } else {
+                        document.write(`<pre>The module is missing : ${componentName}</pre>`);
+                        throw `The module is missing : ${componentName}`;
+                      }
+                    })
                     .then(html => {
                       componentHtmlMap[componentName] = html;
                       renderShadow(this, shadow, html);
-                    });
+                    })
                 } else {
                   renderShadow(this, shadow, componentHtmlMap[componentName]);
                 }
@@ -71,7 +79,6 @@
     shadow: null,
     props: {},
     cites: {},
-    event: null,
 
     isRendered: false,
     renderd: null,
@@ -81,7 +88,7 @@
     },
 
     cite(cites) {
-      if(Object.prototype.toString.call(cites) !== "[object Object]") {
+      if (Object.prototype.toString.call(cites) !== "[object Object]") {
         return;
       }
       Object.assign(this.cites, cites);
@@ -95,8 +102,6 @@
       return this.isRendered && this.shadow.querySelectorAll(selector);
     },
 
-    
-
     refresh() {
       Setor.refresh();
     },
@@ -105,4 +110,12 @@
       Setor.clearRefresh();
     }
   });
+
+  Object.defineProperties(Setor.prototype, {
+    event:{
+      get () {
+        return this.shadow.contains(Setor.event) ? Setor.event : null;
+      }
+    }
+  })
 })

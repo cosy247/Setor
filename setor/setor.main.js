@@ -888,9 +888,7 @@
 
     // setLsnrctlCallback
     setLsnrctlCallback(callback, node) {
-      Lsnrctl.callback = () => {
-        callback();
-      };
+      Lsnrctl.callback = callback;
       Lsnrctl.callback();
       Lsnrctl.callback = null;
     }
