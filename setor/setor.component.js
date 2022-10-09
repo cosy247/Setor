@@ -114,7 +114,10 @@
   Object.defineProperties(Setor.prototype, {
     event:{
       get () {
-        return this.shadow.contains(Setor.event) ? Setor.event : null;
+        if(Setor.event && Setor.event.target.getRootNode() === this.shadow) {
+          return Setor.event;
+        }
+        return null;
       }
     }
   })

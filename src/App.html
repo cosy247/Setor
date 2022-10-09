@@ -1,24 +1,52 @@
-<app-packhtml></app-packhtml>
+<!-- <app-packhtml +title="FILE"></app-packhtml> -->
 
 <input type="file" name="" id="files" @change="FILE.getBase64()">
-<textarea cols="30" rows="10">{{FILE.base64}}</textarea>
-<p>{{FILE.base64}}</p>
+<br>
+<span>选择器</span> <input type="text" ::="SELECT.selectValue">
+<br>
+<span>css属性</span>
+<select ::="SELECT.cssType">
+  <option -for="s in SELECT.cssAllType" :value="s.v">{{s.v}}</option>
+</select>
+<br>
+<textarea cols="30" rows="10">{{SELECT.allText}}</textarea>
+<br>
+<button @clk="SELECT.copy()">copy</button>
 
-<script>
-  const FILE = setor.bind({
-    base64 : "1",
+<script setor="S">
+  const FILE = S.bind({
+    base64: "",
     getBase64() {
-      let file = setor.event.target.files[0]; //获取到第一个待上传的文件信息
+      let file = S.event.target.files[0]; //获取到第一个待上传的文件信息
       if (file) {
         let reader = new FileReader(); //初始化读取文件内置的API方法
         reader.onload = function () { //当文件加载完成后调用
           FILE.base64 = reader.result; //e.target.resul  就是我们需要的base64 
-          setor.refresh();
+          S.refresh();
         }
         reader.readAsDataURL(file);
       }
     }
   })
 
-  setor.cite({ FILE });
+  const SELECT = S.bind({
+    selectValue: "[bg=\"\"]",
+    cssAllType: ["background-image", "content"],
+    cssType: "background-image",
+
+    set allText(v) { },
+    get allText() {
+      return SELECT.selectValue + `{\n    ${SELECT.cssType}:url("${FILE.base64}");\n};`
+    },
+
+    copy() {
+      navigator.clipboard.writeText(SELECT.allText).then(function () {
+        alert("复制成功！");
+      }, function () {
+        alert("复制失败！");
+      });
+    }
+  })
+
+  S.cite({ FILE, SELECT });
 </script>

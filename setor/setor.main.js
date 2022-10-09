@@ -35,13 +35,10 @@
         get: (target, key, receiver) => {
           if (typeof key !== "symbol" && Lsnrctl.callback) {
             let allCallbackKey = `${callbackKey}.${key}`;
-            if (callbacks[allCallbackKey]) {
-              if (!callbacks[allCallbackKey].includes(Lsnrctl.callback)) {
-                callbacks[allCallbackKey].push(Lsnrctl.callback);
-              }
-            } else {
-              callbacks[allCallbackKey] = [Lsnrctl.callback];
+            if (!callbacks[allCallbackKey]) {
+              callbacks[allCallbackKey] = new Set();;
             }
+            callbacks[allCallbackKey].add(Lsnrctl.callback);
           }
 
           Lsnrctl.recorderValue || (Lsnrctl.recorderValue = {
@@ -83,7 +80,6 @@
     static handCalls(callbacks, callbackKey) {
       if (Lsnrctl.isCalling) return;
       Lsnrctl.isCalling = true;
-
       if (Lsnrctl.autoRefresh) {
         for (const cbKey in callbacks) {
           if (Object.hasOwnProperty.call(callbacks, cbKey) && cbKey.indexOf(callbackKey) == 0) {
@@ -97,7 +93,7 @@
       } else {
         for (const cbKey in callbacks) {
           if (Object.hasOwnProperty.call(callbacks, cbKey) && cbKey.indexOf(callbackKey) == 0) {
-            Lsnrctl.refreshCalls.add(...callbacks[cbKey]);
+            callbacks[cbKey].forEach(call => Lsnrctl.refreshCalls.add(call));
           }
         }
       }
@@ -248,7 +244,7 @@
           const [attrName, adorns, valueString] = bindAttrs[attrAllName];
           node.removeAttribute(attrAllName);
 
-          if (node.tagName.toUpperCase() === "INPUT" && attrName[0] === ":") {
+          if (["INPUT","SELECT"].includes(node.tagName.toUpperCase()) && attrName[0] === ":") {
             this.renderBind_mutual(node, attrName.slice(1), valueString, adorns);
           } else if (attrName === "class") {
             this.renderBind_class(node, valueString, adorns);
@@ -326,12 +322,18 @@
     }
 
     renderBind_mutual(node, type, valueString, adorns) {
-      // if (node.getAttribute(":value")) {
-      //   this.renderBind_normal(node, "value", node.getAttribute(":value"));
-      // }
+      let tagName = node.tagName.toUpperCase();
+      if(tagName === "INPUT") {
+        this.renderBind_mutual_input(node, type, valueString, adorns);
+      } else if(tagName === "SELECT") {
+        this.renderBind_mutual_select(node, type, valueString, adorns);
+      }
+    }
 
+    renderBind_mutual_input(node, type, valueString, adorns) {
       let valueFun = this.getValueFun(valueString);
       let setValueFun = null, model = "";
+
       if (node.type === "checkbox") {
         model = "change";
         let bindData = valueFun();
@@ -383,12 +385,28 @@
           setValueFun = Lsnrctl.recorderValue.set;
         }
       }
-      Array.from(new Set(type.split("."))).forEach(tp => {
-        tp === "" && (tp = model);
-        node.addEventListener(tp, () => {
-          setValueFun && setValueFun(node.value);
-          Lsnrctl.autoRefresh || Lsnrctl.refresh();
-        });
+
+      node.addEventListener(type || model, () => {
+        setValueFun && setValueFun(node.value);
+        Lsnrctl.autoRefresh || Lsnrctl.refresh();
+      });
+    }
+
+    renderBind_mutual_select(node, type, valueString, adorns) {
+      let valueFun = this.getValueFun(valueString);
+      let setValueFun;
+
+      Lsnrctl.recorderValue = null;
+      this.setLsnrctlCallback(() => {
+        node.value = valueFun();
+      }, node);
+      if (Lsnrctl.recorderValue) {
+        setValueFun = Lsnrctl.recorderValue.set;
+      }
+
+      node.addEventListener(type || "change", () => {
+        setValueFun && setValueFun(node.value);
+        Lsnrctl.autoRefresh || Lsnrctl.refresh();
       });
     }
 
@@ -925,10 +943,10 @@
       root && new Render(root, data);
     }
 
-    get event() {
+    static get event() {
       return Render.event;
     }
-    set event(v) { };
+    static set event(v) { };
 
     static watch(watchPropsCall, callback) {
       Lsnrctl.callback = () => {

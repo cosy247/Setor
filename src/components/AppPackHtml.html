@@ -6,7 +6,6 @@
   <input id="fileName" type="text" ::="data.fileName">
   <br />
   <input type="button" value="download" @click="download()">
-  <!-- <iframe :src="data.src" frameborder="1"></iframe> -->
   <br />
   <iframe id="packIframe" :src="data.src" frameborder="1" sandbox="allow-same-origin"></iframe>
   <p>{{data.loadedNum}}/{{data.allLoadedNum}}</p>
@@ -18,29 +17,28 @@
     iframe: "#packIframe",
 
     set src(v) {
-      this._src = v;
+      data._src = v;
       let date = new Date();
       let fullDate = date.getFullYear() + String(date.getMonth() + 1).padStart(2, "0") + String(date.getDate()).padStart(2, "0");
       let name = v.match(/(?<=_).*?(?=\/)/);
-      this.fileName = name + "_lyq_" + fullDate;
+      data.fileName = name + "_lyq_" + fullDate;
     },
     get src() {
-      return this._src || "";
+      return data._src || "";
     },
 
     allLoadedNum: 0,
     get loadedNum() {
-      return this._loadedNum || 0;
+      return data._loadedNum || 0;
     },
     set loadedNum(v) {
-      this._loadedNum = v;
-      console.log(v, this.allLoadedNum);
-      if (v == this.allLoadedNum) {
-        let innerHTML = pulsor.get(this.iframe).contentDocument.documentElement.innerHTML;
+      data._loadedNum = v;
+      if (v == data.allLoadedNum) {
+        let innerHTML = S.get(data.iframe).contentDocument.documentElement.innerHTML;
         let downHTML = "<!DOCTYPE html> <html lang='en'>" + innerHTML + "</html>";
         var aTag = document.createElement("a");
         var blob = new Blob([downHTML]);
-        aTag.download = this.fileName + ".html";
+        aTag.download = data.fileName + ".html";
         aTag.href = URL.createObjectURL(blob);
         aTag.click();
         URL.revokeObjectURL(blob);
@@ -49,11 +47,11 @@
   });
 
   function download() {
-    let ifrDocument = pulsor.get(this.iframe).contentDocument.documentElement;
+    let ifrDocument = S.get(data.iframe).contentDocument.documentElement;
     let allScript = ifrDocument.querySelectorAll("script");
     let allStyle = ifrDocument.querySelectorAll("link[rel='stylesheet']");
-    this.allLoadedNum = allScript.length + allStyle.length;
-    this.loadedNum = 0;
+    data.allLoadedNum = allScript.length + allStyle.length;
+    data.loadedNum = 0;
 
     allScript.forEach(s => {
       if (s.src) {
@@ -61,7 +59,7 @@
           .then(data => data.text())
           .then(data => {
             s.innerHTML = "\n" + data.replace(/\n/, "") + "\n";
-            this.loadedNum++;
+            data.loadedNum++;
           });
         s.setAttribute("name", s.src);
         s.removeAttribute("src");
@@ -69,7 +67,7 @@
         if (!s.getAttribute("name")) {
           s.parentNode.removeChild(s);
         }
-        this.loadedNum++;
+        data.loadedNum++;
       }
     });
 
@@ -83,7 +81,7 @@
             s.setAttribute("name", s.href);
             s.parentNode.insertBefore(style, s);
             s.parentNode.removeChild(s);
-            this.loadedNum++;
+            data.loadedNum++;
           });
       } else {
         if (!s.getAttribute("name")) {
@@ -95,7 +93,7 @@
           document.head.appendChild(style);
           s.parentNode.removeChild(s);
         }
-        this.loadedNum++;
+        data.loadedNum++;
       }
     });
   }
