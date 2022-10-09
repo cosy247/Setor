@@ -149,6 +149,9 @@
     events = {};
     static supportTouch = "ontouchstart" in document;
 
+    // 用于自定义特殊属性
+    static moreSpecial = {};
+
     constructor(root, data) {
 
       this.root = root;
@@ -557,6 +560,7 @@
               funs.forEach(f => {
                 Render.event = event;
                 f();
+                Lsnrctl.autoRefresh || Lsnrctl.refresh();
               });
             }
           })
@@ -594,6 +598,10 @@
             breakRender = this.renderSpecial_rise(node, valueString, adorns);
           } else if (attrName === "put") {
             breakRender = this.renderSpecial_put(node, valueString, adorns);
+          }
+
+          if(Render.moreSpecial[attrName]) {
+            breakRender = Render.moreSpecial[attrName](node, valueString, adorns, this.getValueFun(valueString), this.setLsnrctlCallback);
           }
 
           if (breakRender) return true;
@@ -905,7 +913,7 @@
     }
 
     // setLsnrctlCallback
-    setLsnrctlCallback(callback, node) {
+    setLsnrctlCallback(callback) {
       Lsnrctl.callback = callback;
       Lsnrctl.callback();
       Lsnrctl.callback = null;
@@ -927,6 +935,9 @@
   }
 
   return class {
+    static _Lsnrctl = Lsnrctl;
+    static _Render = Render;
+
     static bind(data, that) {
       return Lsnrctl.getProxyData(data, that);
     }
@@ -971,6 +982,11 @@
 
     static clearRefresh() {
       Lsnrctl.clearRefresh();
+    }
+
+    static addRenderSpecial(attrName, renderFun) {
+      if(typeof renderFun !== "function") return;
+      Render.moreSpecial[attrName] = renderFun;
     }
   };
 });
