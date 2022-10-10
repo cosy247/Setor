@@ -1,35 +1,24 @@
 <app-menu +list="menu.list" +shift="menu.shift"></app-menu>
 
-<app-packhtml -router="packhtml" -show="menu.current == 1"></app-packhtml>
+<app-packhtml -router="packhtml"></app-packhtml>
 
-<app-base64 -router="base64" -show="menu.current == 4"></app-base64>
+<app-base64 -router="base64"></app-base64>
+<app-base64 -router="base64"></app-base64>
 
 <script setor="S">
   let menu = S.bind({
     list:[
-      {id:1, title:"packHtml"},
+      {id:1, title:"packHtml", router:"packhtml"},
       {id:2, title:"Images"},
       {id:3, title:"Audioss"},
-      {id:4, title:"Base64"},
+      {id:4, title:"Base64", router:"base64"},
     ],
     current: 1,
-    shift(id){
-      menu.current = id;
+    shift(m){
+      menu.current = m.id;
+      m.router && S.to(m.router);
     }
   })
-
-  let aa = {
-    name :"aa",
-    age : {
-      old : 19,
-      new : 20
-    }
-  }
-  Object.freeze(aa);
-  aa.name = 333;
-  aa.age.old = 22;
-
-  console.log(aa);
 
   S.cite({menu})
 </script>

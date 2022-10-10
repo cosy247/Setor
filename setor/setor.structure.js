@@ -21,16 +21,16 @@
           fetch(config.rootJs)
             .then(data => data.text())
             .then(js => {
-              new Function("SetorComponent", js)(Setor);
+              new Function(js)();
             });
         }
 
         if (config.rootCss) {
-          Setor.rootCss(config.rootCss);
-          let link = document.createElement("link");
-          link.setAttribute("rel", "stylesheet");
-          link.setAttribute("href", config.rootCss);
-          rootNode.appendChild(link);
+          fetch(config.rootCss)
+            .then(data => data.text())
+            .then(css => {
+              Setor.rootCss(css);
+            });
         }
       });
   }

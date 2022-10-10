@@ -672,7 +672,7 @@
 
     renderSpecial_if(node, valueString, adorns) {
       let ifAnchor = document.createComment("if");
-      node.parentElement.insertBefore(ifAnchor, node);
+      node.parentNode.insertBefore(ifAnchor, node);
       let valueFun = this.getValueFun(valueString);
 
       this.ifConditions = [valueFun];
@@ -680,9 +680,9 @@
 
       this.setLsnrctlCallback(() => {
         if (valueFun()) {
-          ifAnchor.parentElement.insertBefore(node, ifAnchor);
+          ifAnchor.parentNode.insertBefore(node, ifAnchor);
         } else {
-          ifAnchor.parentElement.removeChild(node);
+          ifAnchor.parentNode.removeChild(node);
         }
       }, node);
     }
@@ -694,7 +694,7 @@
       if (!previousElementSibling || previousElementSibling !== this.lastIfElement) return;
 
       let elifAnchor = document.createComment("elif");
-      node.parentElement.insertBefore(elifAnchor, node);
+      node.parentNode.insertBefore(elifAnchor, node);
 
       let valueFun = this.getValueFun(valueString);
       let ifConditions = [...this.ifConditions];
@@ -704,11 +704,11 @@
       this.setLsnrctlCallback(() => {
         for (const condition of ifConditions) {
           if (condition()) {
-            elifAnchor.parentElement.removeChild(node);
+            elifAnchor.parentNode.removeChild(node);
             return;
           }
         }
-        elifAnchor.parentElement.insertBefore(node, elifAnchor);
+        elifAnchor.parentNode.insertBefore(node, elifAnchor);
       }, node);
     }
 
@@ -719,7 +719,7 @@
       if (!previousElementSibling || previousElementSibling !== this.lastIfElement) return;
 
       let elseAnchor = document.createComment("elif");
-      node.parentElement.insertBefore(elseAnchor, node);
+      node.parentNode.insertBefore(elseAnchor, node);
 
       let ifConditions = [...this.ifConditions];
 
@@ -729,11 +729,11 @@
       this.setLsnrctlCallback(() => {
         for (const condition of ifConditions) {
           if (condition()) {
-            elseAnchor.parentElement.removeChild(node);
+            elseAnchor.parentNode.removeChild(node);
             return;
           }
         }
-        elseAnchor.parentElement.insertBefore(node, elseAnchor);
+        elseAnchor.parentNode.insertBefore(node, elseAnchor);
       }, node);
     }
 
@@ -864,10 +864,10 @@
 
     renderSpecial_put(node, valueString, adorns) {
       let putAnchor = document.createComment("put");
-      node.parentElement.insertBefore(putAnchor, node);
+      node.parentNode.insertBefore(putAnchor, node);
 
       if (adorns.includes("id")) {
-        node.parentElement.removeChild(node);
+        node.parentNode.removeChild(node);
         this.putNodes[valueString] = putAnchor;
       } else {
         let valueFun = this.getValueFun(valueString);
@@ -894,7 +894,7 @@
           }
 
           if (newAnchor && newAnchor !== node.nextSibling) {
-            newAnchor.parentElement.insertBefore(node, newAnchor);
+            newAnchor.parentNode.insertBefore(node, newAnchor);
           }
         })
       }

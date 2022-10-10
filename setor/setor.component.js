@@ -5,6 +5,7 @@
 })((Setor) => {
   let componentHtmlMap = {};
   let rootCss = null;
+  let renderShadowList = [];
 
   function renderShadow(root, shadow, html) {
     shadow.innerHTML = html;
@@ -24,17 +25,15 @@
     setor.isRendered = true;
     typeof setor.renderd === "function" && setor.renderd();
 
-    if (rootCss) {
-      let link = document.createElement("link");
-      link.setAttribute("rel", "stylesheet");
-      link.setAttribute("href", rootCss);
-      rootCss && shadow.appendChild(link);
-    }
+    rootCss && shadow.append(rootCss.cloneNode(true));
   }
 
   Object.assign(Setor, {
     rootCss(v) {
-      if (!rootCss) rootCss = v;
+      if (rootCss) return false;
+      let style = document.createElement("style");
+      style.innerHTML = v;
+      rootCss = style;
     },
     components(components) {
       for (let componentName in components) {
@@ -51,6 +50,7 @@
                 super();
                 let shadow = this.attachShadow({ mode: "open" });
                 if (componentHtmlMap[componentName] === true) {
+                  // componentHtmlMap[componentName] = false;
                   fetch(componentPath + ".html")
                     .then(data => {
                       if (data.status == 200) {
@@ -63,7 +63,13 @@
                     .then(html => {
                       componentHtmlMap[componentName] = html;
                       renderShadow(this, shadow, html);
+                      renderShadowList.forEach(render => render(html));
+                      renderShadowList = [];
                     })
+                } else if(componentHtmlMap[componentName] === false){
+                  renderShadowList.push((html) => {
+                    renderShadow(this, shadow, html);
+                  })
                 } else {
                   renderShadow(this, shadow, componentHtmlMap[componentName]);
                 }
@@ -83,9 +89,9 @@
     isRendered: false,
     renderd: null,
 
-    bind(data) {
-      return Setor.bind(data);
-    },
+    bind: Setor.bind,
+    refresh: Setor.refresh,
+    clearRefresh: Setor.clearRefresh,
 
     cite(cites) {
       if (Object.prototype.toString.call(cites) !== "[object Object]") {
@@ -101,20 +107,12 @@
     getAll(selector) {
       return this.isRendered && this.shadow.querySelectorAll(selector);
     },
-
-    refresh() {
-      Setor.refresh();
-    },
-
-    clearRefresh() {
-      Setor.clearRefresh();
-    }
   });
 
   Object.defineProperties(Setor.prototype, {
-    event:{
-      get () {
-        if(Setor.event && Setor.event.target.getRootNode() === this.shadow) {
+    event: {
+      get() {
+        if (Setor.event && Setor.event.target.getRootNode() === this.shadow) {
           return Setor.event;
         }
         return null;

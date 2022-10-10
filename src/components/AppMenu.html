@@ -1,5 +1,5 @@
 <div class="menuBox">
-  <p class="menu-item" -for="m in list" :class="{current:menu.current === m.id}" @clk="shift(m.id)">{{m.title}}</p>
+  <p class="menu-item" -for="m in list" :class="{current:menu.current === m.id}" @clk="shift(m)">{{m.title}}</p>
 </div>
 
 <router-a></router-a>
