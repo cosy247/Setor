@@ -5,7 +5,7 @@
 })((Setor) => {
   let componentHtmlMap = {};
   let rootCss = null;
-  let renderShadowList = [];
+  let renderShadowListMap = {};
 
   function renderShadow(root, shadow, html) {
     shadow.innerHTML = html;
@@ -50,7 +50,7 @@
                 super();
                 let shadow = this.attachShadow({ mode: "open" });
                 if (componentHtmlMap[componentName] === true) {
-                  // componentHtmlMap[componentName] = false;
+                  componentHtmlMap[componentName] = false;
                   fetch(componentPath + ".html")
                     .then(data => {
                       if (data.status == 200) {
@@ -63,11 +63,16 @@
                     .then(html => {
                       componentHtmlMap[componentName] = html;
                       renderShadow(this, shadow, html);
-                      renderShadowList.forEach(render => render(html));
-                      renderShadowList = [];
+                      if(renderShadowListMap[componentName]) {
+                        renderShadowListMap[componentName].forEach(render => render(html));
+                        delete renderShadowListMap[componentName]
+                      }
                     })
                 } else if(componentHtmlMap[componentName] === false){
-                  renderShadowList.push((html) => {
+                  if(!renderShadowListMap[componentName]) {
+                    renderShadowListMap[componentName] = [];
+                  }
+                  renderShadowListMap[componentName].push((html) => {
                     renderShadow(this, shadow, html);
                   })
                 } else {

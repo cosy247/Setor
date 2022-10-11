@@ -4,7 +4,6 @@
 
 })((Setor) => {
   class Router{
-    static as = 123;
     static map = {};
     static path = (() => {
       window.addEventListener("hashchange", () => {
@@ -32,7 +31,7 @@
       mPath = "";
       for (const p of oldPath) {
         if(p === "") break;
-        mPath += p;
+        mPath += "/" + p;
         if(map[mPath]) {
           for (const m of map[mPath]) {
             showRouters.has(m) || hiddenRouters.add(m);
@@ -71,6 +70,6 @@
 
   Object.assign(Setor.prototype, {
     to: Router.to,
-    path: Router.path,
+    path: Router.path
   });
 })
