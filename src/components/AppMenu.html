@@ -1,8 +1,7 @@
 <div class="menuBox">
   <p class="menu-item" -for="m in list" :class="{current:menu.current === m.id}" @clk="shift(m)">{{m.title}}</p>
+  <slot></slot>
 </div>
-
-<router-a></router-a>
 
 <script setor="S">
   S.cite({

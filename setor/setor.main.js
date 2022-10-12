@@ -150,7 +150,7 @@
     static supportTouch = "ontouchstart" in document;
 
     // 用于自定义特殊属性
-    static moreSpecial = {};
+    static definedSpecials = {};
 
     constructor(root, data) {
 
@@ -247,7 +247,7 @@
           const [attrName, adorns, valueString] = bindAttrs[attrAllName];
           node.removeAttribute(attrAllName);
 
-          if (["INPUT","SELECT"].includes(node.tagName.toUpperCase()) && attrName[0] === ":") {
+          if (["INPUT", "SELECT"].includes(node.tagName.toUpperCase()) && attrName[0] === ":") {
             this.renderBind_mutual(node, attrName.slice(1), valueString, adorns);
           } else if (attrName === "class") {
             this.renderBind_class(node, valueString, adorns);
@@ -326,9 +326,9 @@
 
     renderBind_mutual(node, type, valueString, adorns) {
       let tagName = node.tagName.toUpperCase();
-      if(tagName === "INPUT") {
+      if (tagName === "INPUT") {
         this.renderBind_mutual_input(node, type, valueString, adorns);
-      } else if(tagName === "SELECT") {
+      } else if (tagName === "SELECT") {
         this.renderBind_mutual_select(node, type, valueString, adorns);
       }
     }
@@ -600,8 +600,8 @@
             breakRender = this.renderSpecial_put(node, valueString, adorns);
           }
 
-          if(Render.moreSpecial[attrName]) {
-            breakRender = Render.moreSpecial[attrName](node, valueString, adorns, this.getValueFun(valueString), this.setLsnrctlCallback);
+          if (Render.definedSpecials[attrName]) {
+            breakRender = Render.definedSpecials[attrName](node, valueString, adorns, this.getValueFun(valueString), this.setLsnrctlCallback);
           }
 
           if (breakRender) return true;
@@ -935,11 +935,28 @@
   }
 
   return class {
-    static _Lsnrctl = Lsnrctl;
-    static _Render = Render;
+
+    static get event() { return Render.event; }
+    static set event(v) { };
+
+    static get autoRefresh() {
+      return Lsnrctl.autoRefresh;
+    }
+    static set autoRefresh(v) {
+      Lsnrctl.autoRefresh = v ? true : false;
+    }
 
     static bind(data, that) {
       return Lsnrctl.getProxyData(data, that);
+    }
+
+    static watch(watchPropsCall, callback) {
+      Lsnrctl.callback = () => {
+        Lsnrctl.callback = null;
+        callback();
+      };
+      watchPropsCall();
+      Lsnrctl.callback = null;
     }
 
     static render(selector, data = {}) {
@@ -954,28 +971,6 @@
       root && new Render(root, data);
     }
 
-    static get event() {
-      return Render.event;
-    }
-    static set event(v) { };
-
-    static watch(watchPropsCall, callback) {
-      Lsnrctl.callback = () => {
-        Lsnrctl.callback = null;
-        callback();
-      };
-      watchPropsCall();
-      Lsnrctl.callback = null;
-    }
-
-    static get autoRefresh() {
-      return Lsnrctl.autoRefresh;
-    }
-
-    static set autoRefresh(v) {
-      Lsnrctl.autoRefresh = v ? true : false;
-    }
-
     static refresh() {
       Lsnrctl.refresh();
     }
@@ -984,9 +979,17 @@
       Lsnrctl.clearRefresh();
     }
 
-    static addRenderSpecial(attrName, renderFun) {
-      if(typeof renderFun !== "function") return;
-      Render.moreSpecial[attrName] = renderFun;
+    static defineSpecial(name, renderFun) {
+      if (/^[a-z]+$/.test(name)) {
+        console.error(`defineSpecialAttr.name "${name}" is not a valid attr name`);
+      }
+      if (typeof renderFun !== "function") {
+        console.error("defineSpecialAttr.renderFun not is a function");
+        return;
+      };
+      Render.definedSpecials[name] = renderFun;
     }
+
+    static defineEvent(name, callback) { }
   };
 });
