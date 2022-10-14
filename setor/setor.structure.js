@@ -25,11 +25,11 @@
             });
         }
 
-        if (config.rootCss) {
-          fetch(config.rootCss)
+        if (config.rootStyle) {
+          fetch(config.rootStyle)
             .then(data => data.text())
             .then(css => {
-              Setor.rootCss(css);
+              Setor.rootStyle(css);
             });
         }
       });
