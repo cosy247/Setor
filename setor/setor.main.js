@@ -56,8 +56,8 @@
               value[Lsnrctl.proxySymbol] = true;
             } else if (typeof value === "function" && !Object.hasOwn(value, Lsnrctl.proxySymbol)) {
               let fun = value;
-              value = () => {
-                fun();
+              value = function (){
+                fun.apply(target,arguments);
                 Lsnrctl.autoRefresh || Lsnrctl.refresh();
               };
               Reflect.set(target, key, value, receiver);
@@ -113,9 +113,9 @@
       if (typeof data === "object" && data !== null) {
         return new Proxy(data, Lsnrctl.getProxyHandler());
       } else if (typeof data === "function") {
-        return () => {
-          data();
-          Lsnrctl.refresh();
+        return function (){
+          data(...arguments);
+          Lsnrctl.autoRefresh || Lsnrctl.refresh();
         };
       } else {
         return new Proxy({ v: data }, Lsnrctl.getProxyHandler());
