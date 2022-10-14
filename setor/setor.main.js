@@ -49,9 +49,17 @@
           });
 
           let value = Reflect.get(target, key, receiver);
-          if (typeof key !== "symbol" && value !== null && typeof value == "object") {
-            if (Object.hasOwn(target, key) && !Object.hasOwn(value, Lsnrctl.proxySymbol)) {
+          if (typeof key !== "symbol" && Object.hasOwn(target, key)) {
+            if (value !== null && typeof value === "object" && !Object.hasOwn(value, Lsnrctl.proxySymbol)) {
               value = new Proxy(value, Lsnrctl.getProxyHandler(callbacks, `${callbackKey}.${key}`));
+              Reflect.set(target, key, value, receiver);
+              value[Lsnrctl.proxySymbol] = true;
+            } else if (typeof value === "function" && !Object.hasOwn(value, Lsnrctl.proxySymbol)) {
+              let fun = value;
+              value = () => {
+                fun();
+                Lsnrctl.autoRefresh || Lsnrctl.refresh();
+              };
               Reflect.set(target, key, value, receiver);
               value[Lsnrctl.proxySymbol] = true;
             }
@@ -105,7 +113,10 @@
       if (typeof data === "object" && data !== null) {
         return new Proxy(data, Lsnrctl.getProxyHandler());
       } else if (typeof data === "function") {
-        return data;
+        return () => {
+          data();
+          Lsnrctl.refresh();
+        };
       } else {
         return new Proxy({ v: data }, Lsnrctl.getProxyHandler());
       }

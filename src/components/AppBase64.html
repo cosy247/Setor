@@ -34,7 +34,7 @@
 
     set allText(v) { },
     get allText() {
-      return SELECT.selectValue + `{\n    ${SELECT.cssType}:url("${FILE.base64}");\n};`
+      return SELECT.selectValue + `{\n    ${SELECT.cssType}:url("${FILE.base64}");\n}`
     },
 
     copy() {
