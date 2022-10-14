@@ -1,3 +1,4 @@
+<div class="drop" :ondrop="FILE.drop">拖入文件</div>
 <input type="file" name="" id="files" @change="FILE.getBase64()">
 <br>
 <span>选择器</span> <input type="text" ::="SELECT.selectValue">
@@ -19,16 +20,42 @@
       if (file) {
         let reader = new FileReader(); //初始化读取文件内置的API方法
         reader.onload = function () { //当文件加载完成后调用
-          FILE.base64 = reader.result; //e.target.resul  就是我们需要的base64 
+          FILE.base64 = reader.result; //e.target.resul  就是我们需要的base64
+          SELECT.selectValue = `[bg="${file.name}"]`,
+          S.refresh();
+        }
+        reader.readAsDataURL(file);
+      }
+    },
+    drop(e) {
+      let file = e.dataTransfer.files[0]; //获取到第一个待上传的文件信息
+      if (file) {
+        let reader = new FileReader(); //初始化读取文件内置的API方法
+        reader.onload = function () { //当文件加载完成后调用
+          FILE.base64 = reader.result; //e.target.resul  就是我们需要的base64
+          SELECT.selectValue = `[bg="${file.name}"]`,
           S.refresh();
         }
         reader.readAsDataURL(file);
       }
     }
+  });
+
+  document.addEventListener("drop", function (e) {  //拖离   
+    e.preventDefault();
+  })
+  document.addEventListener("dragleave", function (e) {  //拖后放   
+    e.preventDefault();
+  })
+  document.addEventListener("dragenter", function (e) {  //拖进  
+    e.preventDefault();
+  })
+  document.addEventListener("dragover", function (e) {  //拖来拖去    
+    e.preventDefault();
   })
 
   const SELECT = S.bind({
-    selectValue: "[bg=\"\"]",
+    selectValue: `[bg=""]`,
     cssAllType: ["background-image", "content"],
     cssType: "background-image",
 
@@ -48,3 +75,14 @@
 
   S.cite({ FILE, SELECT });
 </script>
+
+<style>
+  .drop {
+    padding: 5em 8em;
+    width: fit-content;
+    border: dotted 2px #ffc000;
+    font-size: 20px;
+    font-weight: 900;
+    background-color: #ffdd7388;
+  }
+</style>
