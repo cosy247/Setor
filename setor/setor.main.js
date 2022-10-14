@@ -980,7 +980,7 @@
     }
 
     static defineSpecial(name, renderFun) {
-      if (/^[a-z]+$/.test(name)) {
+      if (!/^[a-z]+$/.test(name)) {
         console.error(`defineSpecialAttr.name "${name}" is not a valid attr name`);
       }
       if (typeof renderFun !== "function") {
