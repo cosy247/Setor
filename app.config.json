@@ -1,5 +1,6 @@
 {
   "rootNode":"#root",
+  "rootApp": "src/App",
   "rootJs":"src/root.js",
   "rootStyle":"src/root.css"
 }

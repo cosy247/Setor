@@ -10,9 +10,10 @@
       .then(data => data.json())
       .then(config => {
         if (!config.rootNode) return;
+        if (!config.rootApp) return;
 
         Setor.components({
-          "app-root": "src/App"
+          "app-root": config.rootApp
         });
         let rootNode = document.querySelector(config.rootNode);
         rootNode.innerHTML = "<app-root></app-root>";
