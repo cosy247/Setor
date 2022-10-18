@@ -1,10 +1,10 @@
-<app-menu +list="menu.list" +shift="menu.shift">
-  <p slot>{{menu.current}}</p>
-</app-menu>
+<app-menu +list="menu.list" +shift="menu.shift"></app-menu>
 
 <app-packhtml -router="packhtml"></app-packhtml>
 
 <app-base64 -router="base64"></app-base64>
+
+<router-view></router-view>
 
 <script setor="S">
   let menu = S.bind({
