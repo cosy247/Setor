@@ -1,0 +1,8 @@
+{
+  "dependencies": {
+    "setor": "^1.0.1"
+  },
+  "scripts": {
+    "build": "webpack ./src/root.js --output-path ./build/js/index.js"
+  }
+}
