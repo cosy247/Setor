@@ -1,3 +1,7 @@
+import Setor from "setor"
+
+console.log(Setor);
+
 Setor.components({
   AppMenu: "src/components/AppMenu",
   AppAudios: "src/components/AppAudios",
