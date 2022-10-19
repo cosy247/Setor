@@ -136,7 +136,7 @@ eval("__webpack_require__.r(__webpack_exports__);\n/* harmony export */ __webpac
   \**************************/
 /***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
 
-eval("__webpack_require__.r(__webpack_exports__);\n/* harmony import */ var _js_1__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./js/1 */ \"./test/src/js/1.js\");\n/* harmony import */ var _js_2__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./js/2 */ \"./test/src/js/2.js\");\n/* harmony import */ var _css_1_css__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ./css/1.css */ \"./test/src/css/1.css\");\n\r\n\r\n\r\n\r\nconsole.log((0,_js_1__WEBPACK_IMPORTED_MODULE_0__.add)(1,2));\r\nconsole.log((0,_js_2__WEBPACK_IMPORTED_MODULE_1__.jian)(1,2));\n\n//# sourceURL=webpack:///./test/src/main.js?");
+eval("__webpack_require__.r(__webpack_exports__);\n/* harmony import */ var _js_1_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./js/1.js */ \"./test/src/js/1.js\");\n/* harmony import */ var _js_2_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./js/2.js */ \"./test/src/js/2.js\");\n/* harmony import */ var _css_1_css__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ./css/1.css */ \"./test/src/css/1.css\");\n\r\n\r\n\r\n\r\nvar a = 1;\r\nconsole.log((0,_js_1_js__WEBPACK_IMPORTED_MODULE_0__.add)(1,2));\r\nconsole.log((0,_js_2_js__WEBPACK_IMPORTED_MODULE_1__.jian)(1,2));\n\n//# sourceURL=webpack:///./test/src/main.js?");
 
 /***/ })
 
