@@ -44,6 +44,11 @@ module.exports = {
         generator:{
           filename:"media/[hash:10][ext][query]",
         }
+      },
+      {
+        test: /\.js$/,
+        exclude: /node_modules/,
+        loader: "babel-loader"
       }
     ]
   },
