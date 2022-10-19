@@ -10,6 +10,36 @@
 /******/ 	"use strict";
 /******/ 	var __webpack_modules__ = ({
 
+/***/ "./test/src/js/1.js":
+/*!**************************!*\
+  !*** ./test/src/js/1.js ***!
+  \**************************/
+/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
+
+eval("__webpack_require__.r(__webpack_exports__);\n/* harmony export */ __webpack_require__.d(__webpack_exports__, {\n/* harmony export */   \"add\": () => (/* binding */ add)\n/* harmony export */ });\nfunction add(a, b) {\n  return a + b;\n}\n\n//# sourceURL=webpack:///./test/src/js/1.js?");
+
+/***/ }),
+
+/***/ "./test/src/js/2.js":
+/*!**************************!*\
+  !*** ./test/src/js/2.js ***!
+  \**************************/
+/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
+
+eval("__webpack_require__.r(__webpack_exports__);\n/* harmony export */ __webpack_require__.d(__webpack_exports__, {\n/* harmony export */   \"jian\": () => (/* binding */ jian)\n/* harmony export */ });\nfunction jian(a, b) {\n  return a - b;\n}\n\n//# sourceURL=webpack:///./test/src/js/2.js?");
+
+/***/ }),
+
+/***/ "./test/src/main.js":
+/*!**************************!*\
+  !*** ./test/src/main.js ***!
+  \**************************/
+/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
+
+eval("__webpack_require__.r(__webpack_exports__);\n/* harmony import */ var _js_1_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./js/1.js */ \"./test/src/js/1.js\");\n/* harmony import */ var _js_2_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./js/2.js */ \"./test/src/js/2.js\");\n/* harmony import */ var _css_1_css__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ./css/1.css */ \"./test/src/css/1.css\");\n\n\n\nconsole.log((0,_js_1_js__WEBPACK_IMPORTED_MODULE_0__.add)(1, 2));\nconsole.log((0,_js_2_js__WEBPACK_IMPORTED_MODULE_1__.jian)(1, 2));\n\n//# sourceURL=webpack:///./test/src/main.js?");
+
+/***/ }),
+
 /***/ "./node_modules/css-loader/dist/cjs.js!./test/src/css/1.css":
 /*!******************************************************************!*\
   !*** ./node_modules/css-loader/dist/cjs.js!./test/src/css/1.css ***!
@@ -107,36 +137,6 @@ eval("\r\n\r\n/* istanbul ignore next  */\r\nfunction apply(styleElement, option
 /***/ ((module) => {
 
 eval("\r\n\r\n/* istanbul ignore next  */\r\nfunction styleTagTransform(css, styleElement) {\r\n  if (styleElement.styleSheet) {\r\n    styleElement.styleSheet.cssText = css;\r\n  } else {\r\n    while (styleElement.firstChild) {\r\n      styleElement.removeChild(styleElement.firstChild);\r\n    }\r\n\r\n    styleElement.appendChild(document.createTextNode(css));\r\n  }\r\n}\r\n\r\nmodule.exports = styleTagTransform;\n\n//# sourceURL=webpack:///./node_modules/style-loader/dist/runtime/styleTagTransform.js?");
-
-/***/ }),
-
-/***/ "./test/src/js/1.js":
-/*!**************************!*\
-  !*** ./test/src/js/1.js ***!
-  \**************************/
-/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
-
-eval("__webpack_require__.r(__webpack_exports__);\n/* harmony export */ __webpack_require__.d(__webpack_exports__, {\n/* harmony export */   \"add\": () => (/* binding */ add)\n/* harmony export */ });\nfunction add(a,b) {\r\n  return a + b;\r\n}\n\n//# sourceURL=webpack:///./test/src/js/1.js?");
-
-/***/ }),
-
-/***/ "./test/src/js/2.js":
-/*!**************************!*\
-  !*** ./test/src/js/2.js ***!
-  \**************************/
-/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
-
-eval("__webpack_require__.r(__webpack_exports__);\n/* harmony export */ __webpack_require__.d(__webpack_exports__, {\n/* harmony export */   \"jian\": () => (/* binding */ jian)\n/* harmony export */ });\nfunction jian(a,b) {\r\n  return a-b;\r\n}\n\n//# sourceURL=webpack:///./test/src/js/2.js?");
-
-/***/ }),
-
-/***/ "./test/src/main.js":
-/*!**************************!*\
-  !*** ./test/src/main.js ***!
-  \**************************/
-/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
-
-eval("__webpack_require__.r(__webpack_exports__);\n/* harmony import */ var _js_1_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./js/1.js */ \"./test/src/js/1.js\");\n/* harmony import */ var _js_2_js__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./js/2.js */ \"./test/src/js/2.js\");\n/* harmony import */ var _css_1_css__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ./css/1.css */ \"./test/src/css/1.css\");\n\r\n\r\n\r\n\r\nconsole.log((0,_js_1_js__WEBPACK_IMPORTED_MODULE_0__.add)(1,2));\r\nconsole.log((0,_js_2_js__WEBPACK_IMPORTED_MODULE_1__.jian)(1,2));\n\n//# sourceURL=webpack:///./test/src/main.js?");
 
 /***/ })
 
