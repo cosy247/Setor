@@ -4,7 +4,8 @@ module.exports = {
   entry: "./test/src/main.js",
   output: {
     path: path.resolve(__dirname, "test/build"),
-    filename: "main.js"
+    filename: "js/main.js",
+    clean: true
   },
   module: {
     rules : [
@@ -31,6 +32,16 @@ module.exports = {
           dataUrlCondition: {
             maxSize: 10 * 1024
           }
+        },
+        generator:{
+          filename:"media/[hash:10][ext][query]",
+        }
+      },
+      {
+        test: /\.(ttf|woff2|mp3|mp4|avi)$/,
+        type: "asset/resourse",
+        generator:{
+          filename:"media/[hash:10][ext][query]",
         }
       }
     ]
