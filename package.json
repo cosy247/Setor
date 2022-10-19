@@ -1,8 +1,15 @@
 {
   "dependencies": {
-    "setor": "^1.0.1"
+    "css-loader": "^6.7.1",
+    "setor": "^1.0.1",
+    "style-loader": "^3.3.1"
   },
   "scripts": {
     "build": "webpack ./src/root.js --output-path ./build/js/index.js"
+  },
+  "devDependencies": {
+    "webpack": "^5.74.0",
+    "webpack-cil": "^0.0.1-security",
+    "webpack-cli": "^4.10.0"
   }
 }
