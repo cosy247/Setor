@@ -9,7 +9,11 @@
     "style-loader": "^3.3.1"
   },
   "scripts": {
-    "build": "webpack ./src/root.js --output-path ./build/js/index.js"
+    "start": "npm run dev",
+    "dev": "webpack serve --config ./config/webpack.dev.js",
+    "build": "webpack --config ./config/webpack.prod.js",
+    "dev-test": "webpack serve --config ./config/test/webpack.dev.js",
+    "build-test": "webpack --config ./config/test/webpack.prod.js"
   },
   "devDependencies": {
     "@babel/preset-env": "^7.19.4",
