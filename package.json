@@ -17,6 +17,7 @@
   },
   "devDependencies": {
     "@babel/preset-env": "^7.19.4",
+    "mini-css-extract-plugin": "^2.6.1",
     "webpack": "^5.74.0",
     "webpack-cil": "^0.0.1-security",
     "webpack-cli": "^4.10.0",

@@ -1,6 +1,7 @@
 
 const ESLintWebpackPlugin = require("eslint-webpack-plugin");
 const HtmlWebpackPlugin = require("html-webpack-plugin");
+const MiniCssExtractPlugin = require("mini-css-extract-plugin");
 const path = require("path");
 
 module.exports = {
@@ -14,19 +15,19 @@ module.exports = {
     rules : [
       {
         test:/\.css$/,
-        use: ["style-loader", "css-loader"]
+        use: [MiniCssExtractPlugin.loader, "css-loader"]
       },
       {
         test:/\.less$/,
-        use: ["style-loader", "css-loader","less-loader"]
+        use: [MiniCssExtractPlugin.loader, "css-loader","less-loader"]
       },
       {
         test:/\.s[ac]ss$/,
-        use: ["style-loader", "css-loader","less-loader"]
+        use: [MiniCssExtractPlugin.loader, "css-loader","less-loader"]
       },
       {
         test:/\.styl$/,
-        use: ["style-loader", "css-loader","stylus-loader"]
+        use: [MiniCssExtractPlugin.loader, "css-loader","stylus-loader"]
       },
       {
         test: /\.(jpe?g|png|gif|webp|svg)$/,
@@ -60,6 +61,9 @@ module.exports = {
     }),
     new HtmlWebpackPlugin({
       template: path.resolve(__dirname, "../public/index.html")
+    }),
+    new MiniCssExtractPlugin({
+      filename: "./public/css/main.css"
     })
   ],
   mode: "production"
