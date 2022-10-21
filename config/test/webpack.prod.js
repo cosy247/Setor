@@ -1,69 +1,86 @@
 const ESLintWebpackPlugin = require("eslint-webpack-plugin");
 const HtmlWebpackPlugin = require("html-webpack-plugin");
 const MiniCssExtractPlugin = require("mini-css-extract-plugin");
+
 const path = require("path");
+
+function getStyleLoader(...pre){
+  return [
+    MiniCssExtractPlugin.loader,
+    "css-loader",
+    {
+      loader: "postcss-loader",
+      options: {
+        postcssOptions: {
+          plugins: ["postcss-preset-env"],
+        },
+      },
+    },
+    ...pre
+  ]
+}
 
 module.exports = {
   entry: "./test/src/main.js",
   output: {
     path: path.resolve(__dirname, "../../test/build"),
     filename: "../../test/build/js/main.js",
-    clean:true
+    clean: true,
   },
   module: {
-    rules : [
+    rules: [
       {
-        test:/\.css$/,
-        use: [MiniCssExtractPlugin.loader, "css-loader"]
+        test: /\.css$/,
+        use: getStyleLoader(),
       },
       {
-        test:/\.less$/,
-        use: [MiniCssExtractPlugin.loader, "css-loader","less-loader"]
+        test: /\.less$/,
+        use: getStyleLoader("less-loader"),
       },
       {
-        test:/\.s[ac]ss$/,
-        use: [MiniCssExtractPlugin.loader, "css-loader","less-loader"]
+        test: /\.s[ac]ss$/,
+        use: getStyleLoader("sass-loader"),
       },
       {
-        test:/\.styl$/,
-        use: [MiniCssExtractPlugin.loader, "css-loader","stylus-loader"]
+        test: /\.styl$/,
+        use: getStyleLoader("stylus-loader"),
       },
       {
         test: /\.(jpe?g|png|gif|webp|svg)$/,
         type: "asset",
-        parser:{
+        parser: {
           dataUrlCondition: {
-            maxSize: 10 * 1024
-          }
+            maxSize: 10 * 1024,
+          },
         },
-        generator:{
-          filename:"media/[hash:10][ext][query]",
-        }
+        generator: {
+          filename: "media/[hash:10][ext][query]",
+        },
       },
       {
         test: /\.(ttf|woff2|mp3|mp4|avi)$/,
         type: "asset/resourse",
-        generator:{
-          filename:"media/[hash:10][ext][query]",
-        }
+        generator: {
+          filename: "media/[hash:10][ext][query]",
+        },
       },
       {
         test: /\.js$/,
         exclude: /node_modules/,
-        loader: "babel-loader"
-      }
-    ]
+        loader: "babel-loader",
+      },
+    ],
   },
   plugins: [
     new ESLintWebpackPlugin({
-      context: path.resolve(__dirname, "../../test")
+      context: path.resolve(__dirname, "../../test"),
     }),
     new HtmlWebpackPlugin({
-      template: path.resolve(__dirname, "../../test/public/index.html")
+      template: path.resolve(__dirname, "../../test/public/index.html"),
     }),
     new MiniCssExtractPlugin({
-      filename:"./test/build/css/main.css"
-    })
+      filename: "./test/build/css/main.css",
+    }),
   ],
-  mode: "production"
-}
+  mode: "production",
+};
