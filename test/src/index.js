@@ -1,5 +1,4 @@
 import { Setor } from '../../setor';
+import App from './App.setor';
 
-Setor.render('#root', {
-    name: 'wendy',
-});
+Setor.mount('#root', App);

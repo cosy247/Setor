@@ -1003,6 +1003,8 @@ class Render {
     }
 }
 
+
+
 export class Setor {
     static get event() {
         return Render.event;
@@ -1039,6 +1041,11 @@ export class Setor {
         if (!root) throw 'Render.root not is a Node or NodeSelector!';
         if (data !== null && data.constructor !== Object) throw 'Render.Data not is a undefined or object!';
         root && new Render(root, data);
+    }
+
+    static mount(selector, component) {
+        const node = document.queryCommandValue(selector);
+        
     }
 
     static refresh() {
