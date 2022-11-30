@@ -1,4 +1,4 @@
-if(Setor) {
+export default components {
   let componentHtmlMap = {};
   let rootStyle = null;
   let renderShadowListMap = {};
