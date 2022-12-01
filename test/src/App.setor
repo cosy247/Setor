@@ -1,1 +1,7 @@
+<h1>name: {name}</h1>
 
+<script>
+    export default {
+        name : 'Wendy'
+    }
+</script>

@@ -1003,7 +1003,25 @@ class Render {
     }
 }
 
+const getElement = (selector) => {
+    if(typeof selector === "string") {
+        return document.querySelector(selector);
+    } else if (selector instanceof Element) {
+        return selector;
+    }
+    return null;
+}
 
+export const renderRoot = (selector, component) => {
+    const root  = getElement(selector);
+
+    if(!root) {
+        console.error('选择器错误:', selector);
+        return;
+    }
+
+    
+}
 
 export class Setor {
     static get event() {
