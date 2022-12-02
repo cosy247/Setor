@@ -177,7 +177,9 @@ class Render {
         if (node.nodeName === '#text') {
             this.renderText(node);
         } else {
-            if (node.attributes && this.renderAttr(node)) return;
+            const breakRender = !!(node.attributes && this.renderAttr(node));
+            typeof node.rendered === 'function' && node.rendered();
+            if(breakRender) return;
             if (node.childNodes) {
                 for (const child of Array.from(node.childNodes)) {
                     this.renderNode(child);
@@ -1009,14 +1011,16 @@ export const renderRoot = ({ root, html, data }) => {
     const nodes = stringToNodes(html);
     new Render(nodes, lsnrctlData);
 
-    rootNode.append(nodes);
+    setTimeout(() => {
+        rootNode.append(nodes);
+    }, );
 };
 
 export const renderComponent = ({ name, html, data }) => {
     customElements.define(
         name,
         class extends HTMLElement {
-            connectedCallback() {
+            rendered() {
                 const props = this.retainAttrs || {};
 
                 let lsnrctlData;
