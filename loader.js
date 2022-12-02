@@ -5,12 +5,20 @@
 * @datetime: 2022-12-01 19:11:57
 */
 module.exports = (source) => {
-    const rootFragment = new DocumentFragment();
-    rootFragment.innerHTML = source;
+    return `
+    import { renderComponent } from '../../setor';
+
+    const documentFragment = document.createRange().createContextualFragment(\`${source}\`);
+    const children = [...documentFragment.children]; 
+    const scriptChildren = children.filter((child) => child.nodeName === 'SCRIPT');
+    const script = scriptChildren.map((script) => script.innerHTML).join(';');
+
+    scriptChildren.forEach((scritp) => {
+        documentFragment.removeChild(scritp);
+    });
+
+    renderComponent(documentFragment, script);
     
-    const scriptStart = source.match(/<script.*?>/);
-    if(scriptStart) {
-        const scriptEnd = source.match(/<\/script>/);
-    }
-    return source;
+    export default documentFragment;
+    `;
 };

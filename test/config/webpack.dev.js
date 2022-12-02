@@ -1,11 +1,14 @@
 const ESLintWebpackPlugin = require('eslint-webpack-plugin');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
-const path = require('path');
 
 module.exports = {
     entry: './src/index.js',
     module: {
         rules: [
+            {
+                test: /\.html$/,
+                loader: 'html-loader',
+            },
             {
                 test: /\.css$/,
                 use: ['style-loader', 'css-loader'],

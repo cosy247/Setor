@@ -83,7 +83,7 @@ class Lsnrctl {
         if (Lsnrctl.autoRefresh) {
             for (const cbKey in callbacks) {
                 if (Object.hasOwnProperty.call(callbacks, cbKey) && cbKey.indexOf(callbackKey) == 0) {
-                    callbacks[cbKey].forEach(call => {
+                    callbacks[cbKey].forEach((call) => {
                         Lsnrctl.callback = call;
                         call();
                         Lsnrctl.callback = null;
@@ -93,7 +93,7 @@ class Lsnrctl {
         } else {
             for (const cbKey in callbacks) {
                 if (Object.hasOwnProperty.call(callbacks, cbKey) && cbKey.indexOf(callbackKey) == 0) {
-                    callbacks[cbKey].forEach(call => Lsnrctl.refreshCalls.add(call));
+                    callbacks[cbKey].forEach((call) => Lsnrctl.refreshCalls.add(call));
                 }
             }
         }
@@ -122,7 +122,7 @@ class Lsnrctl {
         if (Lsnrctl.autoRefresh) return;
         Lsnrctl.isCalling = true;
 
-        Lsnrctl.refreshCalls.forEach(call => {
+        Lsnrctl.refreshCalls.forEach((call) => {
             Lsnrctl.callback = call;
             call();
         });
@@ -148,8 +148,6 @@ class Render {
 
     putNodes = {};
 
-    event = null;
-    events = {};
     static supportTouch = 'ontouchstart' in document;
 
     // 用于自定义特殊属性
@@ -172,7 +170,7 @@ class Render {
     renderRoot() {
         this.renderNode(this.root);
         this.isRendered = true;
-        this.rendered.forEach(call => call());
+        this.rendered.forEach((call) => call());
     }
 
     renderNode(node) {
@@ -191,12 +189,12 @@ class Render {
     // renderText
     renderText(node) {
         let match;
-        while ((match = node.data.match(/\{\{.*?\}\}/)) !== null) {
+        while ((match = node.data.match(/\{.*?\}/)) !== null) {
             if (match.index !== 0) {
                 node = node.splitText(match.index);
             }
             let newNode = node.splitText(match[0].length);
-            this.renderTextCotnt(node, node.data.slice(2, -2));
+            this.renderTextCotnt(node, node.data.slice(1, -1));
             node = newNode;
         }
     }
@@ -464,19 +462,19 @@ class Render {
             this.renderEvent_normal(
                 node,
                 'touchstart',
-                event => {
+                (event) => {
                     isMove = false;
                     startTime = Date.now();
                 },
                 adorns
             );
-            this.renderEvent_normal(node, 'touchmove', event => {
+            this.renderEvent_normal(node, 'touchmove', (event) => {
                 isMove = true;
             });
             this.renderEvent_normal(
                 node,
                 'touchend',
-                event => {
+                (event) => {
                     Date.now() - startTime <= 150 && !isMove && valueFun();
                 },
                 adorns
@@ -494,7 +492,7 @@ class Render {
             this.renderEvent_normal(
                 node,
                 'touchstart',
-                event => {
+                (event) => {
                     event.preventDefault();
                     event.returnValue = false;
 
@@ -512,7 +510,7 @@ class Render {
             this.renderEvent_normal(
                 node,
                 'touchend',
-                event => {
+                (event) => {
                     event.preventDefault();
                     event.returnValue = false;
 
@@ -542,7 +540,7 @@ class Render {
             this.renderEvent_normal(
                 node,
                 'touchstart',
-                event => {
+                (event) => {
                     event.preventDefault();
                     event.returnValue = false;
 
@@ -560,7 +558,7 @@ class Render {
             this.renderEvent_normal(
                 node,
                 'touchend',
-                event => {
+                (event) => {
                     event.preventDefault();
                     event.returnValue = false;
 
@@ -585,32 +583,7 @@ class Render {
     renderEvent_normal(node, eventType, valueString, adorns) {
         let valueFun = typeof valueString === 'function' ? valueString : this.getValueFun(valueString);
 
-        if (!this.events[eventType]) {
-            let eventMap = new Map();
-            this.events[eventType] = eventMap;
-            this.root.addEventListener(
-                eventType,
-                event => {
-                    event = event || window.event;
-                    eventMap.forEach((funs, n) => {
-                        if (n.contains(event.target)) {
-                            funs.forEach(f => {
-                                Render.event = event;
-                                f();
-                                Lsnrctl.autoRefresh || Lsnrctl.refresh();
-                            });
-                        }
-                    });
-                    adorns.includes('once') && eventMap.get(node).delete(valueFun);
-                },
-                { passive: false, cancelable: false }
-            );
-        }
-
-        if (!this.events[eventType].has(node)) {
-            this.events[eventType].set(node, new Set());
-        }
-        this.events[eventType].get(node).add(valueFun);
+        node.addEventListener(eventType, valueFun, { passive: false, cancelable: false });
     }
 
     // renderSpecials
@@ -787,14 +760,14 @@ class Render {
         let valueFun = this.getValueFun(valueString);
         let display = node.style.display;
         let shiftStyle = {
-            display: v => (v ? display : 'none'),
+            display: (v) => (v ? display : 'none'),
         };
         if (adorns.includes('opacity')) {
             let opacity = node.style.opacity;
             let pointerEvents = node.style.pointerEvents;
             shiftStyle = {
-                opacity: v => (v ? opacity : 0),
-                pointerEvents: v => (v ? pointerEvents : 'none'),
+                opacity: (v) => (v ? opacity : 0),
+                pointerEvents: (v) => (v ? pointerEvents : 'none'),
             };
         }
         this.setLsnrctlCallback(() => {
@@ -852,7 +825,7 @@ class Render {
             matrixs = matrix
                 .slice(is3d ? 9 : 7, -1)
                 .split(',')
-                .map(n => +n);
+                .map((n) => +n);
         }
 
         let translate = [
@@ -997,31 +970,72 @@ class Render {
         let forValueFuns = [...this.forValues];
         return () => {
             let funProps = [...dataKeys, ...forKeys];
-            let funValues = [...dataValues, ...forValueFuns.map(v => v())];
+            let funValues = [...dataValues, ...forValueFuns.map((v) => v())];
             return new Function(...funProps, `return (${valueString})`)(...funValues);
         };
     }
 }
 
 const getElement = (selector) => {
-    if(typeof selector === "string") {
+    if (typeof selector === 'string') {
         return document.querySelector(selector);
     } else if (selector instanceof Element) {
         return selector;
     }
     return null;
-}
+};
 
-export const renderRoot = (selector, component) => {
-    const root  = getElement(selector);
+const stringToNodes = (DOMString) => {
+    return document.createRange().createContextualFragment(DOMString);
+};
 
-    if(!root) {
-        console.error('选择器错误:', selector);
+export const renderRoot = ({ root, html, data }) => {
+    const rootNode = getElement(root);
+    if (!rootNode) {
+        console.error('选择器错误:', root);
         return;
     }
 
-    
-}
+    let lsnrctlData;
+    if (typeof data === 'function') {
+        lsnrctlData = data();
+    } else if (Object.prototype.toString.call(data) === '[object Object]') {
+        lsnrctlData = data;
+    } else {
+        lsnrctlData = {};
+    }
+    lsnrctlData = Lsnrctl.getProxyData(lsnrctlData);
+
+    const nodes = stringToNodes(html);
+    new Render(nodes, lsnrctlData);
+
+    rootNode.append(nodes);
+};
+
+export const renderComponent = ({ name, html, data }) => {
+    customElements.define(
+        name,
+        class extends HTMLElement {
+            connectedCallback() {
+                const props = this.retainAttrs || {};
+
+                let lsnrctlData;
+                if (typeof data === 'function') {
+                    lsnrctlData = data(props);
+                } else if (Object.prototype.toString.call(data) === '[object Object]') {
+                    lsnrctlData = data;
+                } else {
+                    lsnrctlData = {};
+                }
+                lsnrctlData = Lsnrctl.getProxyData(lsnrctlData);
+
+                let shadow = this.attachShadow({ mode: 'open' });
+                shadow.innerHTML = html;
+                new Render(shadow, lsnrctlData);
+            }
+        }
+    );
+};
 
 export class Setor {
     static get event() {
@@ -1063,7 +1077,6 @@ export class Setor {
 
     static mount(selector, component) {
         const node = document.queryCommandValue(selector);
-        
     }
 
     static refresh() {
