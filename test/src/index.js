@@ -1,4 +1,4 @@
-import { renderRoot } from '../../setor';
+import { renderRoot } from '../..';
 import './components/AppCard';
 
 renderRoot({

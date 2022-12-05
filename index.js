@@ -1,29 +1,45 @@
-let untilStyle = document.createElement('style');
-untilStyle.setAttribute('name', 'pulsor.until');
-untilStyle.innerHTML = `
-      [\\-until] {
+{ // 添加until属性为隐藏
+    let untilStyle = document.createElement('style');
+    untilStyle.setAttribute('name', 'pulsor.until');
+    untilStyle.innerHTML = `
+        body /deep/ [\\-until] {
         display: none;
         opacity: 0;
         pointer-events: none;
         z-index: -1;
         visibility: hidden;
-      }`;
-document.head.appendChild(untilStyle);
+    }`;
+    document.head.appendChild(untilStyle);
+}
 
 class Lsnrctl {
+    /** 当前数据改变回调函数 */
     static callback = null;
+    /** 是否在执行回调函数中 */
     static isCalling = false;
 
+    /** 数据刷新回调函数集 */
     static refreshCalls = new Set();
+    /** 是否为自动刷新 */
     static autoRefresh = false;
 
+    /** 添加数据属性值判断是否被代理 */
     static proxySymbol = Symbol('isProxy');
 
+    /**  */
     static recorderValue = null;
 
+    /**
+    * @description: 获取proxy代理的handler
+    * @author: 李永强
+    * @param {object} callbacks: 回调函数集
+    * @return {object}: proxy代理的handler
+    * @datetime: 2022-12-05 10:25:31
+    */
     static getProxyHandler(callbacks = {}, callbackKey = 'data') {
         return {
             get: (target, key, receiver) => {
+                
                 if (typeof key !== 'symbol' && Lsnrctl.callback) {
                     let allCallbackKey = `${callbackKey}.${key}`;
                     if (!callbacks[allCallbackKey]) {
@@ -1040,67 +1056,3 @@ export const renderComponent = ({ name, html, data }) => {
         }
     );
 };
-
-export class Setor {
-    static get event() {
-        return Render.event;
-    }
-    static set event(v) {}
-
-    static get autoRefresh() {
-        return Lsnrctl.autoRefresh;
-    }
-    static set autoRefresh(v) {
-        Lsnrctl.autoRefresh = v ? true : false;
-    }
-
-    static bind(data, that) {
-        return Lsnrctl.getProxyData(data, that);
-    }
-
-    static watch(watchPropsCall, callback) {
-        Lsnrctl.callback = () => {
-            Lsnrctl.callback = null;
-            callback();
-        };
-        watchPropsCall();
-        Lsnrctl.callback = null;
-    }
-
-    static render(selector, data = {}) {
-        let root = null;
-        if (selector instanceof Node) {
-            root = selector;
-        } else if (typeof selector === 'string') {
-            root = document.querySelector(selector);
-        }
-        if (!root) throw 'Render.root not is a Node or NodeSelector!';
-        if (data !== null && data.constructor !== Object) throw 'Render.Data not is a undefined or object!';
-        root && new Render(root, data);
-    }
-
-    static mount(selector, component) {
-        const node = document.queryCommandValue(selector);
-    }
-
-    static refresh() {
-        Lsnrctl.refresh();
-    }
-
-    static clearRefresh() {
-        Lsnrctl.clearRefresh();
-    }
-
-    static defineSpecial(name, renderFun) {
-        if (!/^[a-z]+$/.test(name)) {
-            console.error(`defineSpecialAttr.name "${name}" is not a valid attr name`);
-        }
-        if (typeof renderFun !== 'function') {
-            console.error('defineSpecialAttr.renderFun not is a function');
-            return;
-        }
-        Render.definedSpecials[name] = renderFun;
-    }
-
-    static defineEvent(name, callback) {}
-}

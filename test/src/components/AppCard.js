@@ -1,4 +1,4 @@
-import { renderComponent } from '../../../setor';
+import { renderComponent } from '../../';
 
 renderComponent({
     name: 'app-card',
