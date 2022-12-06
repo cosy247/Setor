@@ -18,28 +18,36 @@ class Lsnrctl {
     /** 是否在执行回调函数中 */
     static isCalling = false;
 
-    /** 数据刷新回调函数集 */
-    static refreshCalls = new Set();
+    /** 数据刷新回调函数集(二维数组) */
+    static refreshCalls = [];
     /** 是否为自动刷新 */
     static autoRefresh = false;
 
     /** 添加数据属性值判断是否被代理 */
     static proxySymbol = Symbol('isProxy');
 
-    /**  */
+    /** 在一次绑定中第一次使用到的数据，用于表单控件的数据双向绑定 */
     static recorderValue = null;
 
     /**
     * @description: 获取proxy代理的handler
     * @author: 李永强
     * @param {object} callbacks: 回调函数集
+    * data: {           callbacks : {
+    *   a: 1,             'a': [callbacks],
+    *   b: {              'b': [callbacks],
+    *     c: 2,           'b.c': [callbacks],
+    *     d: 3            'b.d': [callbacks]
+    *   }               }
+    * }
     * @return {object}: proxy代理的handler
     * @datetime: 2022-12-05 10:25:31
     */
     static getProxyHandler(callbacks = {}, callbackKey = 'data') {
         return {
+            // 获取属性时对属性和回调函数进行绑定
             get: (target, key, receiver) => {
-                
+                // 为数据绑定变化后的回调函数
                 if (typeof key !== 'symbol' && Lsnrctl.callback) {
                     let allCallbackKey = `${callbackKey}.${key}`;
                     if (!callbacks[allCallbackKey]) {
@@ -48,26 +56,20 @@ class Lsnrctl {
                     callbacks[allCallbackKey].add(Lsnrctl.callback);
                 }
 
-                Lsnrctl.recorderValue ||
-                    (Lsnrctl.recorderValue = {
-                        set(v) {
-                            Reflect.set(target, key, v, receiver);
-                            Lsnrctl.handCalls(callbacks, `${callbackKey}.${key}`);
-                        },
-                    });
+                // 记录第一次使用到的值
+                Lsnrctl.recorderValue || (Lsnrctl.recorderValue = {
+                    set(v) {
+                        Reflect.set(target, key, v, receiver);
+                        Lsnrctl.handCalls(callbacks, `${callbackKey}.${key}`);
+                    },
+                });
 
+                // 获取value并处理（只处理对象自身的非symbol属性的对象值）
                 let value = Reflect.get(target, key, receiver);
                 if (typeof key !== 'symbol' && Object.hasOwn(target, key)) {
                     if (value !== null && typeof value === 'object' && !Object.hasOwn(value, Lsnrctl.proxySymbol)) {
+                        // 渲染为proxy监听对象（添加symbol值作为标识）
                         value = new Proxy(value, Lsnrctl.getProxyHandler(callbacks, `${callbackKey}.${key}`));
-                        Reflect.set(target, key, value, receiver);
-                        value[Lsnrctl.proxySymbol] = true;
-                    } else if (typeof value === 'function' && !Object.hasOwn(value, Lsnrctl.proxySymbol)) {
-                        let fun = value;
-                        value = function () {
-                            fun.apply(target, arguments);
-                            Lsnrctl.autoRefresh || Lsnrctl.refresh();
-                        };
                         Reflect.set(target, key, value, receiver);
                         value[Lsnrctl.proxySymbol] = true;
                     }
@@ -75,14 +77,21 @@ class Lsnrctl {
 
                 return value;
             },
+
+            // 设置属性并执行回调
             set: (target, key, newValue, receiver) => {
+                // 属性值没有改变时不处理（length作为数组长度时无法监听到是否改变，获取得总是最新的，需要特殊处理）
                 if (Reflect.get(target, key, receiver) === newValue && key !== 'length') return true;
+                // 设置属性值
                 let reflect = Reflect.set(target, key, newValue, receiver);
+                // 只对不是symbol的属性进行回调执行
                 if (typeof key !== 'symbol') {
                     Lsnrctl.handCalls(callbacks, `${callbackKey}.${key}`);
                 }
                 return reflect;
             },
+
+            // 删除属性，和设置属性类似
             deleteProperty(target, key, receiver) {
                 let reflect = Reflect.deleteProperty(target, key, receiver);
                 if (typeof key !== 'symbol' && Reflect.has(target, key, receiver)) {
@@ -93,30 +102,54 @@ class Lsnrctl {
         };
     }
 
+    /**
+    * @description: 处理数据绑定的函数回调，键为a.b时将执行a
+    * @author: 李永强
+    * @param {object} callbacks: 回调函数映射
+    * @param {string} callbackKey: 回调函数映射键
+    * @datetime: 2022-12-05 19:01:37
+    */
     static handCalls(callbacks, callbackKey) {
+        // 创建锁，放在无限回调；在执行回调时改变值将不再引起回调
         if (Lsnrctl.isCalling) return;
         Lsnrctl.isCalling = true;
+
+        // 获取需要执行的回调函数（callbacksArray为二维数组）
+        const callbacksArray = [];
+        Object.entries(callbacks).forEach((cbKey, callbacks) => {
+            if(cbKey.includes(callbackKey) === 0) {
+                callbacksArray.push(callbacks);
+            }
+        });
+
+        // 是否自动更新
         if (Lsnrctl.autoRefresh) {
-            for (const cbKey in callbacks) {
-                if (Object.hasOwnProperty.call(callbacks, cbKey) && cbKey.indexOf(callbackKey) == 0) {
-                    callbacks[cbKey].forEach((call) => {
+            // 自动更新时将在当前任务队列完成后执行回调函数
+            setTimeout(() => {
+                callbacksArray.forEach((callbacks) => {
+                    callbacks.forEach((callback) => {
                         Lsnrctl.callback = call;
-                        call();
+                        callback();
                         Lsnrctl.callback = null;
                     });
-                }
-            }
+                })
+            });
         } else {
-            for (const cbKey in callbacks) {
-                if (Object.hasOwnProperty.call(callbacks, cbKey) && cbKey.indexOf(callbackKey) == 0) {
-                    callbacks[cbKey].forEach((call) => Lsnrctl.refreshCalls.add(call));
-                }
-            }
+            // 手动更新将把回调函数队列保存，等待手动调用更新函数
+            Lsnrctl.refreshCalls.push([...callbacksArray]);
         }
 
+        // 解开锁
         Lsnrctl.isCalling = false;
     }
 
+    /**
+    * @description: 代理传入的数据 或 为函数添加更新数据回调
+    * @author: 李永强
+    * @param {any} data: 需要转化的原数据
+    * @return {object|function}: 代理后的数据或处理后的函数
+    * @datetime: 2022-12-06 09:47:18
+    */
     static getProxyData(data) {
         if (typeof data === 'object' && data !== null) {
             return new Proxy(data, Lsnrctl.getProxyHandler());
