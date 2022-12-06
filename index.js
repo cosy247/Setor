@@ -12,6 +12,14 @@
     document.head.appendChild(untilStyle);
 }
 
+/** 是否为手机端 */
+const IS_MOBILE = 'ontouchstart' in document;
+
+/**
+* @description: 数据监听回调处理
+* @author: 李永强
+* @datetime: 2022-12-06 13:03:21
+*/
 class Lsnrctl {
     /** 当前数据改变回调函数 */
     static callback = null;
@@ -110,7 +118,7 @@ class Lsnrctl {
     * @datetime: 2022-12-05 19:01:37
     */
     static handCalls(callbacks, callbackKey) {
-        // 创建锁，放在无限回调；在执行回调时改变值将不再引起回调
+        // 创建锁，防止无限回调；在执行回调时改变值将不再引起回调
         if (Lsnrctl.isCalling) return;
         Lsnrctl.isCalling = true;
 
@@ -144,52 +152,78 @@ class Lsnrctl {
     }
 
     /**
-    * @description: 代理传入的数据 或 为函数添加更新数据回调
+    * @description: 代理传入的数据，普通数据将转为{v:value} 形式，函数将不转换
     * @author: 李永强
     * @param {any} data: 需要转化的原数据
-    * @return {object|function}: 代理后的数据或处理后的函数
+    * @return {object}: 代理后的数据或处理后的函数
     * @datetime: 2022-12-06 09:47:18
     */
     static getProxyData(data) {
-        if (typeof data === 'object' && data !== null) {
+        if(typeof data === 'function') {
+            return data;
+        } else if (typeof data === 'object' && data !== null) {
             return new Proxy(data, Lsnrctl.getProxyHandler());
-        } else if (typeof data === 'function') {
-            return function () {
-                data(...arguments);
-                Lsnrctl.autoRefresh || Lsnrctl.refresh();
-            };
         } else {
             return new Proxy({ v: data }, Lsnrctl.getProxyHandler());
         }
     }
 
+    /**
+    * @description: 清空更新回调函数列表
+    * @author: 李永强
+    * @datetime: 2022-12-06 11:55:31
+    */
     static clearRefresh() {
-        Lsnrctl.refreshCalls.clear();
+        Lsnrctl.refreshCalls = [];
     }
 
+    /**
+    * @description: 手动执行数据回调函数
+    * @author: 李永强
+    * @datetime: 2022-12-06 11:56:48
+    */
     static refresh() {
         if (Lsnrctl.autoRefresh) return;
+
+        // 创建锁，防止无限回调；在执行回调时改变值将不再引起回调
         Lsnrctl.isCalling = true;
 
-        Lsnrctl.refreshCalls.forEach((call) => {
-            Lsnrctl.callback = call;
-            call();
-        });
+        Lsnrctl.refreshCalls.forEach((callbacks) => {
+            callbacks.forEach((callback) => {
+                Lsnrctl.callback = call;
+                callback();
+                Lsnrctl.callback = null;
+            });
+        })
         Lsnrctl.clearRefresh();
 
+        // 解开锁
         Lsnrctl.isCalling = false;
     }
 }
 
+/**
+* @description: 元素数据渲染
+* @author: 李永强
+* @datetime: 2022-12-06 13:03:58
+*/
 class Render {
+    /** 渲染的根元素 */
     root = null;
+
+    /** 渲染数据的key值 */
     dataKeys = [];
+    /** 渲染数据的value值 */
     dataValues = [];
 
+    /** 是否已经渲染完成 */
     isRendered = false;
+    /** 渲染完成回调函数集 */
     rendered = [];
 
+    /** for循环的缓存key值 */
     forKeys = [];
+    /** for循环的缓存value值 */
     forValues = [];
 
     ifConditions = [];
@@ -197,16 +231,21 @@ class Render {
 
     putNodes = {};
 
-    static supportTouch = 'ontouchstart' in document;
-
-    // 用于自定义特殊属性
+    /** 用于自定义特殊属性 */
     static definedSpecials = {};
 
+    /**
+    * @description: 构造函数
+    * @author: 李永强
+    * @param {Element} root: 渲染的根节点
+    * @datetime: 2022-12-06 13:09:35
+    */
     constructor(root, data) {
         this.root = root;
         this.dataKeys = Object.keys(data);
         this.dataValues = Object.values(data);
 
+        // 在html文档加载完成后渲染
         if (window.document.readyState === 'loading') {
             document.addEventListener('DOMContentLoaded', () => {
                 this.renderRoot();
@@ -216,19 +255,34 @@ class Render {
         }
     }
 
+    /**
+    * @description: 渲染根节点，执行回调函数
+    * @author: 李永强
+    * @datetime: 2022-12-06 18:01:48
+    */
     renderRoot() {
         this.renderNode(this.root);
         this.isRendered = true;
         this.rendered.forEach((call) => call());
     }
 
+    /**
+    * @description: 渲染节点和子代节点(普通节点和文本节点分类渲染)
+    * @author: 李永强
+    * @param {Node} node: 渲染的节点
+    * @datetime: 2022-12-06 18:02:35
+    */
     renderNode(node) {
         if (node.nodeName === '#text') {
             this.renderText(node);
         } else {
+            // 渲染节点属性
             const breakRender = !!(node.attributes && this.renderAttr(node));
+            // 执行node的渲染完成回调
             typeof node.rendered === 'function' && node.rendered();
+            // 是否选择子代
             if(breakRender) return;
+            // 渲染子节点
             if (node.childNodes) {
                 for (const child of Array.from(node.childNodes)) {
                     this.renderNode(child);
@@ -237,7 +291,12 @@ class Render {
         }
     }
 
-    // renderText
+    /**
+    * @description: 分割文本节点分别渲染
+    * @author: 李永强
+    * @param {TextNode} node: 文本节点
+    * @datetime: 2022-12-06 18:05:57
+    */
     renderText(node) {
         let match;
         while ((match = node.data.match(/\{.*?\}/)) !== null) {
@@ -250,15 +309,27 @@ class Render {
         }
     }
 
+    /**
+    * @description: 将文本内容与数据进行绑定
+    * @author: 李永强
+    * @param {TextNode} node: 文本节点
+    * @param {valueString} string: 获取属性值的执行代码
+    * @datetime: 2022-12-06 18:06:58
+    */
     renderTextCotnt(node, valueString) {
+        // 获取属性值函数
         let valueFun = this.getValueFun(valueString);
+        // 绑定数据
         this.setLsnrctlCallback(() => {
             let value = valueFun();
             if (typeof value === 'undefined') {
+                // 数据不存在时渲染为空
                 node.data = '';
-            } else if (typeof value === 'object') {
+            } else if (['object', 'function'].includes(typeof value)) {
+                // 数据为对象或函数时渲染为JSON字符串
                 node.data = JSON.stringify(value);
             } else {
+                // 正常渲染值
                 node.data = value;
             }
         }, node);

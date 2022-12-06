@@ -3,15 +3,17 @@ import { renderComponent } from '../../';
 renderComponent({
     name: 'app-card',
     html: /* html */`
-        <h1>{title}</h1>
+        <h1>{title}:{name}</h1>
     `,
     data({ title }){
         return {
             name: 'Wendy',
             title,
-            change(){
-                this.name = 123;
-            },
         };
+    },
+    event: {
+        change(){
+            this.name = 123;
+        },
     },
 });
