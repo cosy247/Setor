@@ -230,9 +230,6 @@ class Render{
 
     putNodes = {};
 
-    /** 用于自定义特殊属性 */
-    static definedSpecials = {};
-
     /**
     * @description: 构造函数
     * @author: 李永强
@@ -699,40 +696,33 @@ class Render{
 
     // renderSpecials
     renderSpecials(node, specialAttrs){
-        for (const attrAllName in specialAttrs){
-            if (Object.hasOwnProperty.call(specialAttrs, attrAllName)){
-                const [attrName, adorns, valueString] = specialAttrs[attrAllName];
-                attrName === 'until' || node.removeAttribute(attrAllName);
+        Object.entries(specialAttrs).forEach(([attrAllName, [attrName, adorns, valueString]]) => {
+            attrName === 'until' || node.removeAttribute(attrAllName);
 
-                let breakRender = false;
-                if (attrName === 'for'){
-                    breakRender = this.renderSpecial_for(node, valueString, adorns);
-                } else if (attrName === 'if'){
-                    breakRender = this.renderSpecial_if(node, valueString, adorns);
-                } else if (attrName === 'elif'){
-                    breakRender = this.renderSpecial_elif(node, valueString, adorns);
-                } else if (attrName === 'else'){
-                    breakRender = this.renderSpecial_else(node, adorns);
-                } else if (attrName === 'until'){
-                    breakRender = this.renderSpecial_until(node, adorns);
-                } else if (attrName === 'show'){
-                    breakRender = this.renderSpecial_show(node, valueString, adorns);
-                } else if (attrName === 'rise'){
-                    breakRender = this.renderSpecial_rise(node, valueString, adorns);
-                } else if (attrName === 'put'){
-                    breakRender = this.renderSpecial_put(node, valueString, adorns);
-                }
-
-                if (Render.definedSpecials[attrName]){
-                    breakRender = Render.definedSpecials[attrName](node, valueString, adorns, this.getValueFun(valueString), this.setLsnrctlCallback);
-                }
-
-                if (breakRender) return true;
+            let breakRender = false;
+            if (attrName === 'for'){
+                breakRender = this.renderSpecialForFor(node, valueString, adorns);
+            } else if (attrName === 'if'){
+                breakRender = this.renderSpecialForIf(node, valueString, adorns);
+            } else if (attrName === 'elif'){
+                breakRender = this.renderSpecialForElif(node, valueString, adorns);
+            } else if (attrName === 'else'){
+                breakRender = this.renderSpecialForElse(node, adorns);
+            } else if (attrName === 'until'){
+                breakRender = this.renderSpecialForUntil(node, adorns);
+            } else if (attrName === 'show'){
+                breakRender = this.renderSpecialForShow(node, valueString, adorns);
+            } else if (attrName === 'rise'){
+                breakRender = this.renderSpecialForRise(node, valueString, adorns);
+            } else if (attrName === 'put'){
+                breakRender = this.renderSpecialForPut(node, valueString, adorns);
             }
-        }
+
+            if (breakRender) return true;
+        });
     }
 
-    renderSpecial_for(node, valueString, adorns){
+    renderSpecialForFor(node, valueString){
         const [vk, forDataString] = valueString.split(' in ');
         const [v, k] = vk.split(',');
 
@@ -794,7 +784,7 @@ class Render{
         return true;
     }
 
-    renderSpecial_if(node, valueString, adorns){
+    renderSpecialForIf(node, valueString){
         const ifAnchor = document.createComment('if');
         node.parentNode.insertBefore(ifAnchor, node);
         const valueFun = this.getValueFun(valueString);
@@ -811,7 +801,7 @@ class Render{
         }, node);
     }
 
-    renderSpecial_elif(node, valueString, adorns){
+    renderSpecialForElif(node, valueString){
         if (this.ifConditions.length === 0) return;
 
         const { previousElementSibling } = node;
@@ -836,7 +826,7 @@ class Render{
         }, node);
     }
 
-    renderSpecial_else(node, adorns){
+    renderSpecialForElse(node, adorns){
         if (this.ifConditions.length === 0) return;
 
         const { previousElementSibling } = node;
@@ -861,13 +851,13 @@ class Render{
         }, node);
     }
 
-    renderSpecial_until(node, adorns){
+    renderSpecialForUntil(node, adorns){
         this.rendered.push(() => {
             node.removeAttribute('-until');
         });
     }
 
-    renderSpecial_show(node, valueString, adorns){
+    renderSpecialForShow(node, valueString, adorns){
         const valueFun = this.getValueFun(valueString);
         const { display } = node.style;
         let shiftStyle = {
@@ -891,8 +881,8 @@ class Render{
         }, node);
     }
 
-    renderSpecial_rise(node, valueString, adorns){
-        const keyframes = this.renderSpecial_rise_adorns(node, adorns);
+    renderSpecialForRise(node, valueString, adorns){
+        const keyframes = this.renderSpecialForRise_adorns(node, adorns);
         const valueFun = this.getValueFun(valueString);
 
         this.setLsnrctlCallback(() => {
@@ -911,7 +901,7 @@ class Render{
         }, node);
     }
 
-    renderSpecial_rise_adorns(node, adorns){
+    renderSpecialForRise_adorns(node, adorns){
         const nodeStyle = getComputedStyle(node);
         const keyframes = {
             offset: [0, 1],
@@ -1014,7 +1004,7 @@ class Render{
         return keyframes;
     }
 
-    renderSpecial_put(node, valueString, adorns){
+    renderSpecialForPut(node, valueString, adorns){
         const putAnchor = document.createComment('put');
         node.parentNode.insertBefore(putAnchor, node);
 
