@@ -1,4 +1,4 @@
-import { renderComponent } from '../../';
+import { renderComponent } from '../../../';
 
 renderComponent({
     name: 'app-card',

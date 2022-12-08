@@ -168,6 +168,8 @@ class Lsnrctl {
         }
     }
 
+
+    
     /**
     * @description: 清空更新回调函数列表
     * @author: 李永强
@@ -200,6 +202,11 @@ class Lsnrctl {
         // 解开锁
         Lsnrctl.isCalling = false;
     }
+}
+
+function bindNodeAttar(node, attrName, valueFun) {
+    const value = valueFun();
+    node.setAttribute(attrName, value);
 }
 
 /**
@@ -335,7 +342,13 @@ class Render {
         }, node);
     }
 
-    // renderAttr
+    /**
+    * @description: 
+    * @author: 李永强
+    * @param {} : 
+    * @return {}: 
+    * @datetime: 2022-12-07 13:07:53
+    */
     renderAttr(node) {
         let bindAttrs = {};
         let eventAttrs = {};

@@ -1,4 +1,4 @@
-import { renderRoot } from '../..';
+import { renderRoot } from '../../';
 import './components/AppCard';
 
 renderRoot({
@@ -21,6 +21,8 @@ renderRoot({
     `,
     data: {
         name: 'Wendy',
+    },
+    event: {
         change(){
             this.name = 123;
         },
