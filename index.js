@@ -136,7 +136,7 @@ class Lsnrctl{
             setTimeout(() => {
                 callbacksArray.forEach((callbacks) => {
                     callbacks.forEach((callback) => {
-                        Lsnrctl.callback = call;
+                        Lsnrctl.callback = callback;
                         callback();
                         Lsnrctl.callback = null;
                     });
@@ -164,7 +164,7 @@ class Lsnrctl{
         } if (typeof data === 'object' && data !== null){
             return new Proxy(data, Lsnrctl.getProxyHandler());
         }
-        return new Proxy({ v: data }, Lsnrctl.getProxyHandler());
+        return new Proxy({ value: data }, Lsnrctl.getProxyHandler());
     }
 
     /**
@@ -189,7 +189,7 @@ class Lsnrctl{
 
         Lsnrctl.refreshCalls.forEach((callbacks) => {
             callbacks.forEach((callback) => {
-                Lsnrctl.callback = call;
+                Lsnrctl.callback = callback;
                 callback();
                 Lsnrctl.callback = null;
             });
@@ -229,9 +229,6 @@ class Render{
     lastIfElement = null;
 
     putNodes = {};
-
-    /** 用于自定义特殊属性 */
-    static definedSpecials = {};
 
     /**
     * @description: 构造函数
@@ -282,11 +279,9 @@ class Render{
             // 是否选择子代
             if (breakRender) return;
             // 渲染子节点
-            if (node.childNodes){
-                for (const child of Array.from(node.childNodes)){
-                    this.renderNode(child);
-                }
-            }
+            node.childNodes ?? [...node.childNodes].forEach((node) => {
+                this.renderNode(node);
+            });
         }
     }
 
@@ -298,13 +293,14 @@ class Render{
     */
     renderText(node){
         let match;
-        while ((match = node.data.match(/\{.*?\}/)) !== null){
+        let textNode = node;
+        while ((match = textNode.data.match(/\{.*?\}/)) !== null){
             if (match.index !== 0){
-                node = node.splitText(match.index);
+                textNode = textNode.splitText(match.index);
             }
-            const newNode = node.splitText(match[0].length);
-            this.renderTextCotnt(node, node.data.slice(1, -1));
-            node = newNode;
+            const newNode = textNode.splitText(match[0].length);
+            this.renderTextCotnt(textNode, textNode.data.slice(1, -1));
+            textNode = newNode;
         }
     }
 
@@ -346,9 +342,10 @@ class Render{
         const eventAttrs = {};
         const specialAttrs = {};
         const retainAttrs = {};
-        for (const attr of node.attributes){
+
+        node.attributes && [...node.attributes].forEach((attr) => {
             const [attrName, ...adorns] = attr.name.split('.');
-            if (attrName.length <= 1) continue;
+            if (attrName.length <= 1) return;
             if (attrName[0] === ':'){
                 bindAttrs[attr.name] = [attrName.slice(1), adorns, attr.value];
             } else if (attrName[0] === '@'){
@@ -358,7 +355,7 @@ class Render{
             } else if (attrName[0] === '+'){
                 retainAttrs[attr.name] = [attrName.slice(1), adorns, attr.value];
             }
-        }
+        });
 
         if (this.renderSpecials(node, specialAttrs)) return true;
         this.renderBinds(node, bindAttrs);
@@ -368,25 +365,22 @@ class Render{
 
     // renderBinds
     renderBinds(node, bindAttrs){
-        for (const attrAllName in bindAttrs){
-            if (Object.hasOwnProperty.call(bindAttrs, attrAllName)){
-                const [attrName, adorns, valueString] = bindAttrs[attrAllName];
-                node.removeAttribute(attrAllName);
+        Object.entries(bindAttrs).forEach(([attrAllName, [attrName, adorns, valueString]]) => {
+            node.removeAttribute(attrAllName);
 
-                if (['INPUT', 'SELECT'].includes(node.tagName.toUpperCase()) && attrName[0] === ':'){
-                    this.renderBind_mutual(node, attrName.slice(1), valueString, adorns);
-                } else if (attrName === 'class'){
-                    this.renderBind_class(node, valueString, adorns);
-                } else if (attrName === 'style'){
-                    this.renderBind_style(node, valueString, adorns);
-                } else {
-                    this.renderBind_normal(node, attrName, valueString, adorns);
-                }
+            if (['INPUT', 'SELECT'].includes(node.tagName.toUpperCase()) && attrName[0] === ':'){
+                this.renderBindForMutual(node, attrName.slice(1), valueString, adorns);
+            } else if (attrName === 'class'){
+                this.renderBindForClass(node, valueString, adorns);
+            } else if (attrName === 'style'){
+                this.renderBindForStyle(node, valueString, adorns);
+            } else {
+                this.renderBindForNormal(node, attrName, valueString, adorns);
             }
-        }
+        });
     }
 
-    renderBind_normal(node, attrName, valueString, adorns){
+    renderBindForNormal(node, attrName, valueString){
         const valueFun = this.getValueFun(valueString);
         this.setLsnrctlCallback(() => {
             const value = valueFun();
@@ -400,20 +394,16 @@ class Render{
         }, node);
     }
 
-    renderBind_class(node, valueString, adorns){
+    renderBindForClass(node, valueString){
         const { className } = node;
         const valueFun = this.getValueFun(valueString);
         this.setLsnrctlCallback(() => {
             let newClassName = className;
             const value = valueFun();
-            if (value !== null && typeof value === 'object'){
-                for (const className in value){
-                    if (Object.hasOwnProperty.call(value, className)){
-                        if (value[className]){
-                            newClassName += ` ${className}`;
-                        }
-                    }
-                }
+            if (Object.prototype.toString.call(value) === '[object Object]'){
+                Object.entries(value).forEach(([className, active]) => {
+                    active && (newClassName += ` ${className}`);
+                });
             } else {
                 newClassName += ` ${value}`;
             }
@@ -421,28 +411,24 @@ class Render{
         }, node);
     }
 
-    renderBind_style(node, valueString, adorns){
+    renderBindForstyle(node, valueString){
         const style = node.getAttribute('style') || '';
         const valueFun = this.getValueFun(valueString);
         this.setLsnrctlCallback(() => {
             let newStyle = style;
             const value = valueFun();
-            if (value !== null && typeof value === 'object'){
-                for (const styleName in value){
-                    if (Object.hasOwnProperty.call(value, styleName)){
-                        let styleValue = value[styleName];
-                        if (styleName === 'transform' && Object.prototype.toString.call(styleValue) === '[object Object]'){
-                            let transform = '';
-                            for (const transName in styleValue){
-                                if (Object.hasOwnProperty.call(styleValue, transName)){
-                                    transform += `${transName}(${styleValue[transName]})`;
-                                }
-                            }
-                            styleValue = transform;
-                        }
+            if (Object.prototype.toString.call(value) === '[object Object]'){
+                Object.entries(value).forEach(([styleName, styleValue]) => {
+                    if (styleName === 'transform' && Object.prototype.toString.call(styleValue) === '[object Object]'){
+                        let transform = '';
+                        Object.entries(styleValue).forEach(([transName, transValue]) => {
+                            transform += `${transName}(${transValue}) `;
+                        });
+                        newStyle += `${styleName}:${transform};`;
+                    } else {
                         newStyle += `${styleName}:${styleValue};`;
                     }
-                }
+                });
             } else {
                 newStyle += value;
             }
@@ -450,16 +436,16 @@ class Render{
         }, node);
     }
 
-    renderBind_mutual(node, type, valueString, adorns){
+    renderBindForMutual(node, type, valueString, adorns){
         const tagName = node.tagName.toUpperCase();
         if (tagName === 'INPUT'){
-            this.renderBind_mutual_input(node, type, valueString, adorns);
+            this.renderBindForMutualOfInput(node, type, valueString, adorns);
         } else if (tagName === 'SELECT'){
-            this.renderBind_mutual_select(node, type, valueString, adorns);
+            this.renderBindMutualOfSelect(node, type, valueString, adorns);
         }
     }
 
-    renderBind_mutual_input(node, type, valueString, adorns){
+    renderBindForMutualOfInput(node, type, valueString){
         const valueFun = this.getValueFun(valueString);
         let setValueFun = null;
         let model = '';
@@ -522,7 +508,7 @@ class Render{
         });
     }
 
-    renderBind_mutual_select(node, type, valueString, adorns){
+    renderBindForMutualOfSelect(node, type, valueString){
         const valueFun = this.getValueFun(valueString);
         let setValueFun;
 
@@ -542,81 +528,76 @@ class Render{
 
     // renderEvents
     renderEvents(node, eventAttrs){
-        for (const attrAllName in eventAttrs){
-            if (Object.hasOwnProperty.call(eventAttrs, attrAllName)){
-                const [eventType, adorns, valueString] = eventAttrs[attrAllName];
-                node.removeAttribute(attrAllName);
-
-                if (eventType === 'down'){
-                    this.renderEvent_down(node, valueString, adorns);
-                } else if (eventType === 'up'){
-                    this.renderEvent_up(node, valueString, adorns);
-                } else if (eventType === 'clk'){
-                    this.renderEvent_clk(node, valueString, adorns);
-                } else if (eventType === 'dbclk'){
-                    this.renderEvent_dbclk(node, valueString, adorns);
-                } else if (eventType === 'move'){
-                    this.renderEvent_move(node, valueString, adorns);
-                } else {
-                    this.renderEvent_normal(node, eventType, valueString, adorns);
-                }
+        Object.entries(eventAttrs).forEach(([attrAllName, [eventType, adorns, valueString]]) => {
+            node.removeAttribute(attrAllName);
+            if (eventType === 'down'){
+                this.renderEventForDown(node, valueString, adorns);
+            } else if (eventType === 'up'){
+                this.renderEventForUp(node, valueString, adorns);
+            } else if (eventType === 'clk'){
+                this.renderEventForClk(node, valueString, adorns);
+            } else if (eventType === 'dbclk'){
+                this.renderEventForDbclk(node, valueString, adorns);
+            } else if (eventType === 'move'){
+                this.renderEventForMove(node, valueString, adorns);
+            } else {
+                this.renderEventForNormal(node, eventType, valueString, adorns);
             }
-        }
+        });
     }
 
-    renderEvent_down(node, valueString, adorns){
-        const valueFun = this.getValueFun(valueString);
+    renderEventForDown(node, valueString, adorns){
         if (Render.supportTouch){
-            this.renderEvent_normal(node, 'touchstart', valueString, adorns);
+            this.renderEventForNormal(node, 'touchstart', valueString, adorns);
         } else {
-            this.renderEvent_normal(node, 'mousedown', valueString, adorns);
+            this.renderEventForNormal(node, 'mousedown', valueString, adorns);
         }
     }
 
-    renderEvent_up(node, valueString, adorns){
+    renderEventForUp(node, valueString, adorns){
         if (Render.supportTouch){
-            this.renderEvent_normal(node, 'touchend', valueString, adorns);
+            this.renderEventForNormal(node, 'touchend', valueString, adorns);
         } else {
-            this.renderEvent_normal(node, 'mouseup', valueString, adorns);
+            this.renderEventForNormal(node, 'mouseup', valueString, adorns);
         }
     }
 
-    renderEvent_clk(node, valueString, adorns){
+    renderEventForClk(node, valueString, adorns){
         if (Render.supportTouch){
             const valueFun = this.getValueFun(valueString);
             let isMove = true;
             let startTime = 0;
-            this.renderEvent_normal(
+            this.renderEventForNormal(
                 node,
                 'touchstart',
-                (event) => {
+                () => {
                     isMove = false;
                     startTime = Date.now();
                 },
                 adorns,
             );
-            this.renderEvent_normal(node, 'touchmove', (event) => {
+            this.renderEventForNormal(node, 'touchmove', () => {
                 isMove = true;
             });
-            this.renderEvent_normal(
+            this.renderEventForNormal(
                 node,
                 'touchend',
-                (event) => {
+                () => {
                     Date.now() - startTime <= 150 && !isMove && valueFun();
                 },
                 adorns,
             );
         } else {
-            this.renderEvent_normal(node, 'click', valueString, adorns);
+            this.renderEventForNormal(node, 'click', valueString, adorns);
         }
     }
 
-    renderEvent_dbclk(node, valueString, adorns){
+    renderEventForDbclk(node, valueString, adorns){
         if (Render.supportTouch){
             const valueFun = this.getValueFun(valueString);
             let clickCount = 0;
             let isDbclickTimeoutId = 0;
-            this.renderEvent_normal(
+            this.renderEventForNormal(
                 node,
                 'touchstart',
                 (event) => {
@@ -634,7 +615,7 @@ class Render{
                 },
                 adorns,
             );
-            this.renderEvent_normal(
+            this.renderEventForNormal(
                 node,
                 'touchend',
                 (event) => {
@@ -655,16 +636,16 @@ class Render{
                 adorns,
             );
         } else {
-            this.renderEvent_normal(node, 'dbclick', valueString, adorns);
+            this.renderEventForNormal(node, 'dbclick', valueString, adorns);
         }
     }
 
-    renderEvent_move(node, valueString, adorns){
+    renderEventForMove(node, valueString, adorns){
         if (Render.supportTouch){
             const valueFun = this.getValueFun(valueString);
             let clickCount = 0;
             let isDbclickTimeoutId = 0;
-            this.renderEvent_normal(
+            this.renderEventForNormal(
                 node,
                 'touchstart',
                 (event) => {
@@ -682,7 +663,7 @@ class Render{
                 },
                 adorns,
             );
-            this.renderEvent_normal(
+            this.renderEventForNormal(
                 node,
                 'touchend',
                 (event) => {
@@ -703,11 +684,11 @@ class Render{
                 adorns,
             );
         } else {
-            this.renderEvent_normal(node, 'dbclick', valueString, adorns);
+            this.renderEventForNormal(node, 'dbclick', valueString, adorns);
         }
     }
 
-    renderEvent_normal(node, eventType, valueString, adorns){
+    renderEventForNormal(node, eventType, valueString){
         const valueFun = typeof valueString === 'function' ? valueString : this.getValueFun(valueString);
 
         node.addEventListener(eventType, valueFun, { passive: false, cancelable: false });
@@ -715,40 +696,33 @@ class Render{
 
     // renderSpecials
     renderSpecials(node, specialAttrs){
-        for (const attrAllName in specialAttrs){
-            if (Object.hasOwnProperty.call(specialAttrs, attrAllName)){
-                const [attrName, adorns, valueString] = specialAttrs[attrAllName];
-                attrName === 'until' || node.removeAttribute(attrAllName);
+        Object.entries(specialAttrs).forEach(([attrAllName, [attrName, adorns, valueString]]) => {
+            attrName === 'until' || node.removeAttribute(attrAllName);
 
-                let breakRender = false;
-                if (attrName === 'for'){
-                    breakRender = this.renderSpecial_for(node, valueString, adorns);
-                } else if (attrName === 'if'){
-                    breakRender = this.renderSpecial_if(node, valueString, adorns);
-                } else if (attrName === 'elif'){
-                    breakRender = this.renderSpecial_elif(node, valueString, adorns);
-                } else if (attrName === 'else'){
-                    breakRender = this.renderSpecial_else(node, adorns);
-                } else if (attrName === 'until'){
-                    breakRender = this.renderSpecial_until(node, adorns);
-                } else if (attrName === 'show'){
-                    breakRender = this.renderSpecial_show(node, valueString, adorns);
-                } else if (attrName === 'rise'){
-                    breakRender = this.renderSpecial_rise(node, valueString, adorns);
-                } else if (attrName === 'put'){
-                    breakRender = this.renderSpecial_put(node, valueString, adorns);
-                }
-
-                if (Render.definedSpecials[attrName]){
-                    breakRender = Render.definedSpecials[attrName](node, valueString, adorns, this.getValueFun(valueString), this.setLsnrctlCallback);
-                }
-
-                if (breakRender) return true;
+            let breakRender = false;
+            if (attrName === 'for'){
+                breakRender = this.renderSpecialForFor(node, valueString, adorns);
+            } else if (attrName === 'if'){
+                breakRender = this.renderSpecialForIf(node, valueString, adorns);
+            } else if (attrName === 'elif'){
+                breakRender = this.renderSpecialForElif(node, valueString, adorns);
+            } else if (attrName === 'else'){
+                breakRender = this.renderSpecialForElse(node, adorns);
+            } else if (attrName === 'until'){
+                breakRender = this.renderSpecialForUntil(node, adorns);
+            } else if (attrName === 'show'){
+                breakRender = this.renderSpecialForShow(node, valueString, adorns);
+            } else if (attrName === 'rise'){
+                breakRender = this.renderSpecialForRise(node, valueString, adorns);
+            } else if (attrName === 'put'){
+                breakRender = this.renderSpecialForPut(node, valueString, adorns);
             }
-        }
+
+            if (breakRender) return true;
+        });
     }
 
-    renderSpecial_for(node, valueString, adorns){
+    renderSpecialForFor(node, valueString){
         const [vk, forDataString] = valueString.split(' in ');
         const [v, k] = vk.split(',');
 
@@ -810,7 +784,7 @@ class Render{
         return true;
     }
 
-    renderSpecial_if(node, valueString, adorns){
+    renderSpecialForIf(node, valueString){
         const ifAnchor = document.createComment('if');
         node.parentNode.insertBefore(ifAnchor, node);
         const valueFun = this.getValueFun(valueString);
@@ -827,7 +801,7 @@ class Render{
         }, node);
     }
 
-    renderSpecial_elif(node, valueString, adorns){
+    renderSpecialForElif(node, valueString){
         if (this.ifConditions.length === 0) return;
 
         const { previousElementSibling } = node;
@@ -852,7 +826,7 @@ class Render{
         }, node);
     }
 
-    renderSpecial_else(node, adorns){
+    renderSpecialForElse(node, adorns){
         if (this.ifConditions.length === 0) return;
 
         const { previousElementSibling } = node;
@@ -877,13 +851,13 @@ class Render{
         }, node);
     }
 
-    renderSpecial_until(node, adorns){
+    renderSpecialForUntil(node, adorns){
         this.rendered.push(() => {
             node.removeAttribute('-until');
         });
     }
 
-    renderSpecial_show(node, valueString, adorns){
+    renderSpecialForShow(node, valueString, adorns){
         const valueFun = this.getValueFun(valueString);
         const { display } = node.style;
         let shiftStyle = {
@@ -907,8 +881,8 @@ class Render{
         }, node);
     }
 
-    renderSpecial_rise(node, valueString, adorns){
-        const keyframes = this.renderSpecial_rise_adorns(node, adorns);
+    renderSpecialForRise(node, valueString, adorns){
+        const keyframes = this.renderSpecialForRise_adorns(node, adorns);
         const valueFun = this.getValueFun(valueString);
 
         this.setLsnrctlCallback(() => {
@@ -927,7 +901,7 @@ class Render{
         }, node);
     }
 
-    renderSpecial_rise_adorns(node, adorns){
+    renderSpecialForRise_adorns(node, adorns){
         const nodeStyle = getComputedStyle(node);
         const keyframes = {
             offset: [0, 1],
@@ -1030,7 +1004,7 @@ class Render{
         return keyframes;
     }
 
-    renderSpecial_put(node, valueString, adorns){
+    renderSpecialForPut(node, valueString, adorns){
         const putAnchor = document.createComment('put');
         node.parentNode.insertBefore(putAnchor, node);
 
