@@ -288,10 +288,9 @@ class Render{
             // 是否选择子代
             if (breakRender) return;
             // 渲染子节点
-            node.childNodes
-                ?? [...node.childNodes].forEach((node) => {
-                    this.renderNode(node);
-                });
+            node.childNodes && [...node.childNodes].forEach((node) => {
+                this.renderNode(node);
+            });
         }
     }
 
@@ -1187,28 +1186,36 @@ class Render{
     }
 }
 
-const getElement = (selector) => {
-    if (typeof selector === 'string'){
-        return document.querySelector(selector);
-    }
-    if (selector instanceof Element){
-        return selector;
-    }
-    return null;
-};
+const rootStore = Lsnrctl.getProxyData({});
 
-const stringToNodes = (DOMString) => document.createRange().createContextualFragment(DOMString);
+const renderFragment = (html = '', data = {}, event = {}, props = {}) => {
+    Object.entries(event).forEach(([key, value]) => {
+        if (typeof value !== 'function'){
+            throw `Compoment的参数event中的${key}应为函数`;
+        }
+    });
+    Object.entries(data).forEach(([key]) => {
+        if (event[key]){
+            throw `Compoment的参数data和event中不应同时存在${key}值`;
+        }
+    });
 
-export const renderRoot = ({ root, html, data }) => {
-    const rootNode = getElement(root);
-    if (!rootNode){
-        console.error('选择器错误:', root);
-        return;
-    }
+    const nodes = document.createRange().createContextualFragment(html);
+    const that = {};
 
+    // 为event中的事件绑定this
+    const lsnrctlEvent = {};
+    Object.entries(event).forEach(([name, fun]) => lsnrctlEvent[name] = fun.bind(that));
+
+    // 代理数据
     let lsnrctlData;
     if (typeof data === 'function'){
-        lsnrctlData = data();
+        const funData = data({ event, props, store: rootStore });
+        if (Object.prototype.toString.call(funData) === '[object Object]'){
+            lsnrctlData = funData;
+        } else {
+            lsnrctlData = {};
+        }
     } else if (Object.prototype.toString.call(data) === '[object Object]'){
         lsnrctlData = data;
     } else {
@@ -1216,35 +1223,54 @@ export const renderRoot = ({ root, html, data }) => {
     }
     lsnrctlData = Lsnrctl.getProxyData(lsnrctlData);
 
-    const nodes = stringToNodes(html);
-    new Render(nodes, lsnrctlData);
+    // 在event事件中的this加入内容
+    Object.assign(that, { $store: rootStore }, lsnrctlData, lsnrctlEvent);
+
+    // 渲染节点
+    new Render(nodes, that);
+
+    // 返回节点
+    return nodes;
+};
+
+export const renderRoot = ({ root, html, data, event, store }) => {
+    const rootNode = document.querySelector(root);
+    if (!rootNode){
+        console.error('选择器错误:', root);
+        return;
+    }
+
+    if (Object.prototype.toString.call(store) === '[object Object]'){
+        const storeProps = {};
+        Object.entries(store).forEach(([name, valueFun]) => {
+            let value = valueFun();
+            storeProps[name] = {
+                get(){
+                    return value;
+                },
+                set(newValue){
+                    value = valueFun(newValue);
+                },
+            };
+        });
+        Object.defineProperties(rootStore, storeProps);
+    }
 
     setTimeout(() => {
-        rootNode.append(nodes);
+        rootNode.append(renderFragment(html, data, event));
     });
 };
 
-export const renderComponent = ({ name, html, data }) => {
-    customElements.define(
-        name,
-        class extends HTMLElement{
-            rendered(){
-                const props = this.retainAttrs || {};
+export const renderComponent = ({ name, html, data, event }) => {
+    if (typeof name !== 'string'){
+        throw 'Compoment的name参数应该存在并为string类型';
+    }
 
-                let lsnrctlData;
-                if (typeof data === 'function'){
-                    lsnrctlData = data(props);
-                } else if (Object.prototype.toString.call(data) === '[object Object]'){
-                    lsnrctlData = data;
-                } else {
-                    lsnrctlData = {};
-                }
-                lsnrctlData = Lsnrctl.getProxyData(lsnrctlData);
-
-                const shadow = this.attachShadow({ mode: 'open' });
-                shadow.innerHTML = html;
-                new Render(shadow, lsnrctlData);
-            }
-        },
-    );
+    customElements.define(name, class extends HTMLElement{
+        rendered(){
+            const props = this.retainAttrs || {};
+            const shadow = this.attachShadow({ mode: 'open' });
+            shadow.append(shadow.append(renderFragment(html, data, event, props)));
+        }
+    });
 };

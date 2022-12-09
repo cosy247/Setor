@@ -3,17 +3,16 @@ import { renderComponent } from '../../../';
 renderComponent({
     name: 'app-card',
     html: /* html */`
-        <h1>{title}:{name}</h1>
+        <h1 @clk='handle()'>name:{username}</h1>
     `,
-    data({ title }){
+    data({ store }){
         return {
-            name: 'Wendy',
-            title,
+            username: store.username,
         };
     },
     event: {
-        change(){
-            this.name = 123;
+        handle(){
+            this.$store.username = 1111111111111;
         },
     },
 });
