@@ -1190,11 +1190,24 @@ class Render{
     }
 }
 
-const rootStore = Lsnrctl.getProxyData({});
+// store
+const rootStore = null;
+const setSore = (store) => {
 
+};
+
+// rootStyle
 let rootStyleNode = null;
+const setRootStyle = (styleString) => {
+    const rootStyleStirng = styleString.trim().replace(/\s+/g, ' ');
+    if (rootStyleStirng !== ''){
+        rootStyleNode = document.createElement('style');
+        rootStyleNode.innerHTML = rootStyleStirng;
+    }
+};
 
-const renderFragment = (html = '', data = {}, event = {}, props = {}, style = '') => {
+// render component or root
+const renderFragment = (html = '', data = {}, event = {}, props = {}, store = null, style = '') => {
     Object.entries(event).forEach(([key, value]) => {
         if (typeof value !== 'function'){
             throw `Compoment的参数event中的${key}应为函数`;
@@ -1250,7 +1263,7 @@ const renderFragment = (html = '', data = {}, event = {}, props = {}, style = ''
     return fragment;
 };
 
-export const renderRoot = ({ root, html, data, event, store, style, rootStyle }) => {
+const renderRoot = ({ root, html, data, event, store, style }) => {
     const rootNode = document.querySelector(root);
     if (!rootNode){
         console.error('选择器错误:', root);
@@ -1273,18 +1286,12 @@ export const renderRoot = ({ root, html, data, event, store, style, rootStyle })
         Object.defineProperties(rootStore, storeProps);
     }
 
-    const rootStyleStirng = rootStyle.trim().replace(/\s+/g, ' ');
-    if (rootStyleStirng !== ''){
-        rootStyleNode = document.createElement('style');
-        rootStyleNode.innerHTML = rootStyleStirng;
-    }
-
     setTimeout(() => {
         rootNode.append(renderFragment(html, data, event, {}, style));
     });
 };
 
-export const renderComponent = ({ name, html, data, event }) => {
+const renderComponent = ({ name, html, data, event, store, style }) => {
     if (typeof name !== 'string'){
         throw 'Compoment的name参数应该存在并为string类型';
     }
@@ -1297,4 +1304,12 @@ export const renderComponent = ({ name, html, data, event }) => {
             shadow.append(renderFragment(html, data, event, props));
         }
     });
+};
+
+export {
+    setSore,
+    setRootStyle,
+
+    renderRoot,
+    renderComponent,
 };
