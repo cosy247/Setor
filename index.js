@@ -16,15 +16,8 @@
 /** 是否为手机端 */
 const IS_MOBILE = 'ontouchstart' in document;
 
-/**
- * @description: 判断对象是否为指定类型，使用Object.prototype.toString
- * @author: 李永强
- * @param {any} data: 需要判断的数据
- * @param {string} typeString: 数据类型
- * @return {boolean}: 是否为指定类型
- * @datetime: 2022-12-09 09:40:36
- */
-const isType = (data, typeString) => Object.prototype.toString.call(data) === `[object ${typeString}]`;
+/** 不会渲染的节点名 */
+const IGNORE_RENDER_NODE_NAMES = ['SCRIPT'];
 
 /**
  * @description: 数据监听回调处理
@@ -40,7 +33,7 @@ class Lsnrctl{
     /** 数据刷新回调函数集 */
     static refreshCalls = new Set();
     /** 是否为自动刷新 */
-    static autoRefresh = false;
+    static autoRefresh = true;
 
     /** 添加数据属性值判断是否被代理 */
     static proxySymbol = Symbol('isProxy');
@@ -87,12 +80,17 @@ class Lsnrctl{
                 // 获取value并处理（只处理对象自身的非symbol属性的对象值）
                 let value = Reflect.get(target, key, receiver);
                 if (typeof key !== 'symbol' && Object.hasOwn(target, key)){
-                    if (value !== null && typeof value === 'object' && !Object.hasOwn(value, Lsnrctl.proxySymbol)){
-                        // 渲染为proxy监听对象（添加symbol值作为标识）
+                    if (Object.prototype.toString.call(value) === '[object Object]' && !Object.hasOwn(value, Lsnrctl.proxySymbol)){
+                        // 渲染为proxy监听对象，添加symbol值作为标识
                         value = new Proxy(value, Lsnrctl.getProxyHandler(callbacks, `${callbackKey}.${key}`));
                         Reflect.set(target, key, value, receiver);
                         value[Lsnrctl.proxySymbol] = true;
                     }
+                }
+
+                // 如果为函数则返回函数的运行结果
+                if (typeof value === 'function'){
+                    value = value();
                 }
 
                 return value;
@@ -136,9 +134,9 @@ class Lsnrctl{
 
         // 获取需要执行的回调函数（callbacksArray为二维数组）
         const callbacksArray = [];
-        Object.entries(callbacks).forEach((cbKey, callbacks) => {
-            if (cbKey.includes(callbackKey) === 0){
-                callbacksArray.push([...callbacks]);
+        Object.entries(callbacks).forEach(([cbKey, calls]) => {
+            if (cbKey.indexOf(callbackKey) === 0){
+                callbacksArray.push(...calls);
             }
         });
 
@@ -278,6 +276,11 @@ class Render{
      * @datetime: 2022-12-06 18:02:35
      */
     renderNode(node){
+        const nodeName = { node };
+
+        // 检查是否为忽略渲染的节点
+        if (IGNORE_RENDER_NODE_NAMES.includes(nodeName)) return;
+
         if (node.nodeName === '#text'){
             this.renderText(node);
         } else {
@@ -292,6 +295,7 @@ class Render{
                 this.renderNode(node);
             });
         }
+        console.log();
     }
 
     /**
@@ -795,7 +799,7 @@ class Render{
      * @datetime: 2022-12-09 19:32:18
      */
     renderEventForNormal(node, eventType, valueString){
-        const valueFun = this.getValueFun(valueString);
+        const valueFun = this.getValueFun(valueString)();
         node.addEventListener(eventType, valueFun);
     }
 
@@ -1153,7 +1157,7 @@ class Render{
 
     // specialRetains
     renderRetains(node, retainAttrs){
-        if (!isType(node.retainAttrs, 'Object')){
+        if (Object.prototype.toString.call(node.retainAttrs) !== '[object Object]'){
             node.retainAttrs = {};
         }
         Object.entries(retainAttrs).forEach(([attrAllName, [attrName, adorns, valueString]]) => {
@@ -1188,7 +1192,9 @@ class Render{
 
 const rootStore = Lsnrctl.getProxyData({});
 
-const renderFragment = (html = '', data = {}, event = {}, props = {}) => {
+let rootStyleNode = null;
+
+const renderFragment = (html = '', data = {}, event = {}, props = {}, style = '') => {
     Object.entries(event).forEach(([key, value]) => {
         if (typeof value !== 'function'){
             throw `Compoment的参数event中的${key}应为函数`;
@@ -1200,7 +1206,7 @@ const renderFragment = (html = '', data = {}, event = {}, props = {}) => {
         }
     });
 
-    const nodes = document.createRange().createContextualFragment(html);
+    const fragment = document.createRange().createContextualFragment(html.trim());
     const that = {};
 
     // 为event中的事件绑定this
@@ -1227,13 +1233,24 @@ const renderFragment = (html = '', data = {}, event = {}, props = {}) => {
     Object.assign(that, { $store: rootStore }, lsnrctlData, lsnrctlEvent);
 
     // 渲染节点
-    new Render(nodes, that);
+    new Render(fragment, that);
+
+    // 添加rootStyle
+    rootStyleNode && fragment.appendChild(rootStyleNode.cloneNode(true));
+
+    // 添加style
+    const styleStirng = style.trim().replace(/\s+/g, ' ');
+    if (styleStirng !== ''){
+        const styleDom = document.createElement('style');
+        styleDom.innerHTML = styleStirng;
+        fragment.appendChild(styleDom);
+    }
 
     // 返回节点
-    return nodes;
+    return fragment;
 };
 
-export const renderRoot = ({ root, html, data, event, store }) => {
+export const renderRoot = ({ root, html, data, event, store, style, rootStyle }) => {
     const rootNode = document.querySelector(root);
     if (!rootNode){
         console.error('选择器错误:', root);
@@ -1256,8 +1273,14 @@ export const renderRoot = ({ root, html, data, event, store }) => {
         Object.defineProperties(rootStore, storeProps);
     }
 
+    const rootStyleStirng = rootStyle.trim().replace(/\s+/g, ' ');
+    if (rootStyleStirng !== ''){
+        rootStyleNode = document.createElement('style');
+        rootStyleNode.innerHTML = rootStyleStirng;
+    }
+
     setTimeout(() => {
-        rootNode.append(renderFragment(html, data, event));
+        rootNode.append(renderFragment(html, data, event, {}, style));
     });
 };
 
@@ -1267,10 +1290,11 @@ export const renderComponent = ({ name, html, data, event }) => {
     }
 
     customElements.define(name, class extends HTMLElement{
-        rendered(){
+        constructor(){
+            super();
             const props = this.retainAttrs || {};
             const shadow = this.attachShadow({ mode: 'open' });
-            shadow.append(shadow.append(renderFragment(html, data, event, props)));
+            shadow.append(renderFragment(html, data, event, props));
         }
     });
 };
