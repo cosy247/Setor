@@ -1,30 +1,40 @@
-import { renderRoot } from '../../';
+import { createStore, renderRoot, setRootStyle } from '../../';
 import './components/AppCard';
+
+createStore({
+    username: 'wendy',
+    age: 12,
+}, {
+
+});
+
+setRootStyle({
+
+});
 
 renderRoot({
     root: '#root',
     html: /* html */ `
-        <h1>name: {name}</h1>
-        <h1>name: {name}</h1>
-        <button @click="change()">{name}</button>
-        <app-card +title="123">123</app-card>
-        
-        <style>
-            * {
-                margin: 10px 0;
-                padding: 0;
-            }
-            h1 {
-                background-color: rgb(64, 167, 106);
-            }
-        </style>
+        <app-card>
+            <h3>{username.value}</h3>
+        </app-card>
+        <h1>123</h1>
     `,
-    data: {
-        name: 'Wendy',
+    data({ event }){
+        event.change();
     },
     event: {
         change(){
             this.name = 123;
         },
     },
+    store: ({ username, age }) => ({
+        username,
+        age,
+    }),
+    style: /* css */ `
+        h1 {
+            background: #8ad;
+        }
+    `,
 });
