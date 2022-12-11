@@ -1,4 +1,5 @@
-import { renderRoot, setRootStyle, setSore } from '../../';
+import { renderRoot, setRootStyle } from '../../scripts';
+import { setSore } from '../../scripts/store';
 import './components/AppCard';
 
 setSore({

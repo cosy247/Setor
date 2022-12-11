@@ -1,4 +1,5 @@
-import { renderComponent, store } from '../../../';
+import { renderComponent } from '../../../scripts';
+import { store } from '../../../scripts/store';
 
 renderComponent({
     name: 'app-card',
