@@ -1,37 +1,32 @@
-import { createStore, renderRoot, setRootStyle } from '../../';
+import { renderRoot, setRootStyle, setSore } from '../../';
 import './components/AppCard';
 
-createStore({
+setSore({
     username: 'wendy',
     age: 12,
-}, {
-
 });
 
-setRootStyle({
+setRootStyle(/* css */`
 
-});
+`);
 
 renderRoot({
     root: '#root',
     html: /* html */ `
         <app-card>
-            <h3>{username.value}</h3>
+            <h3>123123123123</h3>
         </app-card>
         <h1>123</h1>
     `,
-    data({ event }){
-        event.change();
+    data(){
+        console.log(this);
+        return {};
     },
     event: {
         change(){
             this.name = 123;
         },
     },
-    store: ({ username, age }) => ({
-        username,
-        age,
-    }),
     style: /* css */ `
         h1 {
             background: #8ad;

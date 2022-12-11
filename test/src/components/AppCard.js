@@ -1,4 +1,4 @@
-import { renderComponent } from '../../../';
+import { renderComponent, store } from '../../../';
 
 renderComponent({
     name: 'app-card',
@@ -6,10 +6,12 @@ renderComponent({
         <h1 @clk='handle'>name:{person.username}</h1>
         <slot></slot>
     `,
-    data({ store }){
+    data(){
         return {
             person: {
-                username: () => store.username,
+                get username(){
+                    return store.username;
+                },
             },
         };
     },

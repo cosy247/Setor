@@ -88,11 +88,6 @@ class Lsnrctl{
                     }
                 }
 
-                // 如果为函数则返回函数的运行结果
-                if (typeof value === 'function'){
-                    value = value();
-                }
-
                 return value;
             },
 
@@ -286,8 +281,6 @@ class Render{
         } else {
             // 渲染节点属性
             const breakRender = !!(node.attributes && this.renderAttr(node));
-            // 执行node的渲染完成回调
-            typeof node.rendered === 'function' && node.rendered();
             // 是否选择子代
             if (breakRender) return;
             // 渲染子节点
@@ -1191,9 +1184,11 @@ class Render{
 }
 
 // store
-const rootStore = null;
-const setSore = (store) => {
-
+let store = null;
+const setSore = (data) => {
+    if (store === null && Object.prototype.toString(data) === '[object Object]'){
+        store = data;
+    }
 };
 
 // rootStyle
@@ -1207,7 +1202,7 @@ const setRootStyle = (styleString) => {
 };
 
 // render component or root
-const renderFragment = (html = '', data = {}, event = {}, props = {}, store = null, style = '') => {
+const renderFragment = (html = '', data = {}, event = {}, style = '', props = {}) => {
     Object.entries(event).forEach(([key, value]) => {
         if (typeof value !== 'function'){
             throw `Compoment的参数event中的${key}应为函数`;
@@ -1229,7 +1224,7 @@ const renderFragment = (html = '', data = {}, event = {}, props = {}, store = nu
     // 代理数据
     let lsnrctlData;
     if (typeof data === 'function'){
-        const funData = data({ event, props, store: rootStore });
+        const funData = data(props);
         if (Object.prototype.toString.call(funData) === '[object Object]'){
             lsnrctlData = funData;
         } else {
@@ -1243,7 +1238,7 @@ const renderFragment = (html = '', data = {}, event = {}, props = {}, store = nu
     lsnrctlData = Lsnrctl.getProxyData(lsnrctlData);
 
     // 在event事件中的this加入内容
-    Object.assign(that, { $store: rootStore }, lsnrctlData, lsnrctlEvent);
+    Object.assign(that, lsnrctlData, lsnrctlEvent);
 
     // 渲染节点
     new Render(fragment, that);
@@ -1263,50 +1258,37 @@ const renderFragment = (html = '', data = {}, event = {}, props = {}, store = nu
     return fragment;
 };
 
-const renderRoot = ({ root, html, data, event, store, style }) => {
+const renderRoot = ({ root, html, data, event, style }) => {
     const rootNode = document.querySelector(root);
     if (!rootNode){
         console.error('选择器错误:', root);
         return;
     }
 
-    if (Object.prototype.toString.call(store) === '[object Object]'){
-        const storeProps = {};
-        Object.entries(store).forEach(([name, valueFun]) => {
-            let value = valueFun();
-            storeProps[name] = {
-                get(){
-                    return value;
-                },
-                set(newValue){
-                    value = valueFun(newValue);
-                },
-            };
-        });
-        Object.defineProperties(rootStore, storeProps);
-    }
+    const rootFragment = renderFragment(html, data, event, style, {});
 
     setTimeout(() => {
-        rootNode.append(renderFragment(html, data, event, {}, style));
+        rootNode.append(rootFragment);
     });
 };
 
-const renderComponent = ({ name, html, data, event, store, style }) => {
+const renderComponent = ({ name, html, data, event, style }) => {
     if (typeof name !== 'string'){
         throw 'Compoment的name参数应该存在并为string类型';
     }
 
-    customElements.define(name, class extends HTMLElement{
+    customElements.get(name) || customElements.define(name, class extends HTMLElement{
         constructor(){
             super();
             const props = this.retainAttrs || {};
-            const shadow = this.attachShadow({ mode: 'open' });
-            shadow.append(renderFragment(html, data, event, props));
+            // const shadow = this.attachShadow({ mode: 'open' });
+            this.append(renderFragment(html, data, event, style, props));
         }
     });
 };
 
 export {
+    store,
     setSore,
     setRootStyle,
 
