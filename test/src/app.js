@@ -1,16 +1,15 @@
 import { createComponent } from '../../scripts';
-import Card from './components/Card';
+import './components/Card';
 
-export default createComponent({
-    components: {
-        Card,
-    },
+createComponent({
+    name: 'app-root',
     html: /* html */ `
-        <Card></Card>
+        <app-card/>
+        <app-card />
+        <app-card   app />
         <h1>123</h1>
     `,
     data(){
-        console.log(this);
         return {};
     },
     event: {

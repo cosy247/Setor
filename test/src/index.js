@@ -1,6 +1,6 @@
 import { render, setRootStyle } from '../../scripts';
 import { setSore } from '../../scripts/store';
-import app from './app';
+import './app';
 
 setSore({
     username: 'wendy',
@@ -8,7 +8,10 @@ setSore({
 });
 
 setRootStyle(/* css */`
-
+    * {
+        padding: 0;
+        margin: 0;
+    }
 `);
 
-render('#root', app);
+render('#root', 'app-root');
