@@ -12,7 +12,7 @@ const setRootStyle = (styleString) => {
 };
 
 // render component or root
-const renderFragment = (html = '', data = {}, event = {}, style = '', props = {}) => {
+const renderFragment = (components = {}, html = '', data = {}, event = {}, style = '', props = {}) => {
     Object.entries(event).forEach(([key, value]) => {
         if (typeof value !== 'function'){
             throw `Compoment的参数event中的${key}应为函数`;
@@ -51,7 +51,7 @@ const renderFragment = (html = '', data = {}, event = {}, style = '', props = {}
     Object.assign(that, lsnrctlData, lsnrctlEvent);
 
     // 渲染节点
-    new Render(fragment, that);
+    new Render(fragment, that, components);
 
     // 添加rootStyle
     rootStyleNode && fragment.appendChild(rootStyleNode.cloneNode(true));
@@ -68,38 +68,48 @@ const renderFragment = (html = '', data = {}, event = {}, style = '', props = {}
     return fragment;
 };
 
-const renderRoot = ({ root, html, data, event, style }) => {
-    const rootNode = document.querySelector(root);
-    if (!rootNode){
-        console.error('选择器错误:', root);
+// const render = ({ root, html, data, event, style }) => {
+//     const rootNode = document.querySelector(root);
+//     if (!rootNode){
+//         console.error('选择器错误:', root);
+//         return;
+//     }
+
+//     const rootFragment = renderFragment(html, data, event, style, {});
+
+//     setTimeout(() => {
+//         rootNode.append(rootFragment);
+//     });
+// };
+
+const render = (rootSelecter, component) => {
+    const root = document.querySelector(rootSelecter);
+    if (!root){
+        console.error('选择器错误:', rootSelecter);
         return;
     }
-
-    const rootFragment = renderFragment(html, data, event, style, {});
-
-    setTimeout(() => {
-        rootNode.append(rootFragment);
-    });
+    root.append(component);
 };
 
-const renderComponent = ({ name, html, data, event, style }) => {
+const createComponent = ({ components, html, data, event, style }) => {
     if (typeof name !== 'string'){
         throw 'Compoment的name参数应该存在并为string类型';
     }
 
-    customElements.get(name) || customElements.define(name, class extends HTMLElement{
-        constructor(){
-            super();
-            const props = this.retainAttrs || {};
-            // const shadow = this.attachShadow({ mode: 'open' });
-            this.append(renderFragment(html, data, event, style, props));
-        }
-    });
+    return renderFragment(components, html, data, event, style);
+
+    // customElements.get(name) || customElements.define(name, class extends HTMLElement{
+    //     constructor(){
+    //         super();
+    //         const props = this.retainAttrs || {};
+    //         const shadow = this.attachShadow({ mode: 'open' });
+    //         shadow.append(renderFragment(html, data, event, style, props));
+    //     }
+    // });
 };
 
 export {
+    render,
     setRootStyle,
-
-    renderRoot,
-    renderComponent,
+    createComponent,
 };

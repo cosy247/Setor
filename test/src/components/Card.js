@@ -1,10 +1,10 @@
-import { renderComponent } from '../../../scripts';
+import { createComponent } from '../../../scripts';
 import { store } from '../../../scripts/store';
 
-renderComponent({
+export default createComponent({
     name: 'app-card',
     html: /* html */`
-        <h1 @clk='handle'>name:{person.username}</h1>
+        <h1 @clk='handle'>name:</h1>
         <slot></slot>
     `,
     data(){

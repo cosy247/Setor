@@ -20,6 +20,9 @@ export default class Render{
     /** 渲染数据的value值 */
     dataValues = [];
 
+    /** 渲染时使用的组件 */
+    components = {};
+
     /** 是否已经渲染完成 */
     isRendered = false;
     /** 渲染完成回调函数集 */
@@ -39,12 +42,17 @@ export default class Render{
      * @description: 构造函数
      * @author: 李永强
      * @param {Element} root: 渲染的根节点
+     * @param {Object} data: 渲染时使用的数据
+     * @param {Object:<string:component>} components: 渲染时使用的组件
      * @datetime: 2022-12-06 13:09:35
      */
-    constructor(root, data){
+    constructor(root, data, components){
         this.root = root;
         this.dataKeys = Object.keys(data);
         this.dataValues = Object.values(data);
+        Object.entries(components).forEach(([name, component]) => {
+            this.components[name.toUpperCase()] = component;
+        });
 
         // 在html文档加载完成后渲染
         if (window.document.readyState === 'loading'){
@@ -74,10 +82,16 @@ export default class Render{
      * @datetime: 2022-12-06 18:02:35
      */
     renderNode(node){
-        const nodeName = { node };
+        const { nodeName } = node;
 
         // 检查是否为忽略渲染的节点
         if (IGNORE_RENDER_NODE_NAMES.includes(nodeName)) return;
+
+        // 检查是否为子组件
+        console.log([this.components, nodeName]);
+        if (this.components[nodeName]){
+            this.renderComponent(node, this.components[nodeName]);
+        }
 
         if (node.nodeName === '#text'){
             this.renderText(node);
@@ -92,6 +106,10 @@ export default class Render{
             });
         }
         console.log();
+    }
+
+    renderComponent(node, component){
+        node.append(component);
     }
 
     /**
