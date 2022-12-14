@@ -1,6 +1,6 @@
 // store
 let store = null;
-const setSore = (data) => {
+const setStore = (data) => {
     if (store === null && Object.prototype.toString(data) === '[object Object]'){
         store = data;
     }
@@ -8,5 +8,5 @@ const setSore = (data) => {
 
 export {
     store,
-    setSore,
+    setStore,
 };
