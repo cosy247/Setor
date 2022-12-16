@@ -92,24 +92,24 @@ const createComponent = ({ name, html = '', data = {}, style = '' }) => {
             super();
             const props = this.retainAttrs || {};
             const shadow = this.attachShadow({ mode: 'open' });
-            const that = {};
 
             // 代理数据
+            let lsnrctlData;
             if (istype(data, 'Function')){
                 const funData = data(props);
                 if (istype(funData, 'Object')){
-                    Lsnrctl.getProxyData(funData);
+                    lsnrctlData = Lsnrctl.getProxyData(funData);
                 }  else {
                     output.error('Compoment的data为函数时应该返回一个简单object');
                     return;
                 }
             } else {
-                Lsnrctl.getProxyData(data);
+                lsnrctlData = Lsnrctl.getProxyData(data);
             }
 
             // 渲染节点
             const newFragment = fragment.cloneNode(true);
-            new Render(newFragment, that);
+            new Render(newFragment, lsnrctlData);
 
             // 添加rootStyle
             rootStyleNode && newFragment.appendChild(rootStyleNode.cloneNode(true));
