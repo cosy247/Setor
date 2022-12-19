@@ -1,37 +1,42 @@
+const { default: parse } = require('node-html-parser/dist/parse');
+
 module.exports = function(source){
-    const imports = source.match(/import .*?(['"`]).*?\1$/gm);
-    let matchSource = source.replaceAll('`', '\\`');
+    const fragment = parse(source.replaceAll('`', '\\`'));
+    let script;
+    let style;
+    let component;
+
+    fragment.childNodes.forEach((child) => {
+        const { tagName } = child;
+        if (!tagName) return;
+
+        if (tagName === 'SCRIPT'){
+            script = child;
+        } else if (tagName === 'STYLE'){
+            style = child;
+        } else if (tagName.indexOf('-') > 0){
+            component = child;
+        }
+    });
+
+    const scriptString = script.innerHTML;
+    const imports = scriptString.match(/import .*?(['"`]).*?\1$/gm);
+    let matchScriptString = scriptString;
     imports && imports.forEach((im) => {
-        matchSource = matchSource.replaceAll(im, '');
+        matchScriptString = matchScriptString.replaceAll(im, '');
     });
 
     return `
         import { createComponent } from 'setor';
-        ${imports ? imports.join(';') : ''}
-
-        const fragment = window.document.createRange().createContextualFragment(\`${matchSource}\`);
-        let name = '';
-        let html = '';
-        let style = '';
-        let script = 'return {}';
-
-        fragment.childNodes.forEach((child) => {
-            const { nodeName } = child;
-            if (nodeName === 'SCRIPT'){
-                script = child.innerHTML;
-            } else if (nodeName === 'STYLE'){
-                style = child.innerHTML;
-            } else if (nodeName.indexOf('-') > 0){
-                name = nodeName.toLowerCase();
-                html = child.innerHTML;
-            }
-        });
+        ${imports ? imports.join(';') : ''};
 
         createComponent({
-            name,
-            html,
-            style,
-            data:new Function(script),
+            name: \`${component.tagName.toLowerCase()}\`,
+            html: \`${component.innerHTML}\`,
+            style: \`${style.innerHTML}\`,
+            data(){
+                ${matchScriptString}
+            },
         });
     `;
 };
