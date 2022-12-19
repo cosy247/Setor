@@ -20,7 +20,7 @@ module.exports = function(source){
     });
 
     const scriptString = script.innerHTML;
-    const imports = scriptString.match(/import .*?(['"`]).*?\1$/gm);
+    const imports = scriptString.match(/import .*?(['"`]).*?\1/gm);
     let matchScriptString = scriptString;
     imports && imports.forEach((im) => {
         matchScriptString = matchScriptString.replaceAll(im, '');
