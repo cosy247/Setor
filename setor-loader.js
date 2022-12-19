@@ -1,8 +1,15 @@
 module.exports = function(source){
+    const imports = source.match(/import .*?(['"`]).*?\1$/gm);
+    let matchSource = source.replaceAll('`', '\\`');
+    imports && imports.forEach((im) => {
+        matchSource = matchSource.replaceAll(im, '');
+    });
+
     return `
         import { createComponent } from 'setor';
+        ${imports ? imports.join(';') : ''}
 
-        const fragment = window.document.createRange().createContextualFragment(\`${source.replaceAll('`', '\\`')}\`);
+        const fragment = window.document.createRange().createContextualFragment(\`${matchSource}\`);
         let name = '';
         let html = '';
         let style = '';
