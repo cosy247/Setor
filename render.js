@@ -252,7 +252,7 @@ export default class Render{
      * @param {string} valueString: 获取属性值的表达式
      * @datetime: 2022-12-09 18:19:14
      */
-    renderBindForstyle(node, valueString){
+    renderBindForStyle(node, valueString){
         // 保存标签的style属性
         const style = node.getAttribute('style') || '';
         const valueFun = this.getValueFun(valueString);

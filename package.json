@@ -3,12 +3,10 @@
   "version": "0.0.1",
   "description": "setor",
   "main": "index.js",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
   "author": "cosy247",
   "license": "ISC",
   "dependencies": {
+    "esprima": "^4.0.1",
     "node-html-parser": "^6.1.4"
   }
 }

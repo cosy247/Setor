@@ -128,7 +128,10 @@ const createComponent = ({ name, html = '', data = {}, style = '' }) => {
     });
 };
 
+const ref = (data) => Lsnrctl.getProxyData(data);
+
 export {
     render,
     createComponent,
+    ref,
 };

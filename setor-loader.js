@@ -6,6 +6,7 @@ module.exports = function(source){
     let style;
     let component;
 
+    // 遍历子节点查找对应节点
     fragment.childNodes.forEach((child) => {
         const { tagName } = child;
         if (!tagName) return;
@@ -19,6 +20,11 @@ module.exports = function(source){
         }
     });
 
+    // 获取根节点名
+    const [componnetName, rootTagName] = component.tagName.split(':');
+    component.tagName = rootTagName || 'div';
+
+    // 提取script中import语句
     const scriptString = script.innerHTML;
     const imports = scriptString.match(/import .*?(['"`]).*?\1/gm);
     let matchScriptString = scriptString;
@@ -31,8 +37,8 @@ module.exports = function(source){
         ${imports ? imports.join(';') : ''};
 
         createComponent({
-            name: \`${component.tagName.toLowerCase()}\`,
-            html: \`${component.innerHTML}\`,
+            name: \`${componnetName.toLowerCase()}\`,
+            html: \`${component.outerHTML}\`,
             style: \`${style.innerHTML}\`,
             data(){
                 ${matchScriptString}
