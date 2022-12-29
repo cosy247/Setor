@@ -116,10 +116,10 @@ const createComponent = ({ name, html = '', data = {}, style = '' }) => {
     // 定义组件
     customElements.define(name, class extends HTMLElement{
         connectedCallback(){
-            const shadow = this.attachShadow({ mode: 'open' });
+            const shadow = this.attachShadow({ mode: 'closed' });
 
             // 代理数据
-            let lsnrctlData;
+            let lsnrctlData = {};
             if (istype(data, 'Function')){
                 props = this.retainAttrs || {};
                 const funData = data();
@@ -172,6 +172,35 @@ const bind = (data) => Lsnrctl.getProxyData(data);
  * @datetime: 2022-12-29 15:02:19
  */
 const getProps = () => props;
+
+const hashEvents = new Set();
+window.addEventListener('hashchange', () => {
+    const { hash } = location;
+    hashEvents.forEach((callback) => callback(hash));
+});
+
+// 定义router组件
+customElements.define('app-router', class extends HTMLElement{
+    constructor(){
+        super();
+        this.innerHTML = '';
+        const componentName = this.getAttribute('component');
+        const path = `#${this.getAttribute('path')}` || '#';
+        const { hash } = location;
+
+        if (path === hash){
+            this.innerHTML = `<${componentName}></${componentName}>`;
+        }
+
+        hashEvents.add((hash) => {
+            if (path === hash){
+                this.innerHTML = `<${componentName}></${componentName}>`;
+            } else {
+                this.innerHTML = '';
+            }
+        });
+    }
+});
 
 export {
     render,
