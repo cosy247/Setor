@@ -1,9 +1,36 @@
 import Lsnrctl from './lsnrctl';
 import Render from './render';
-import { istype, output } from './utils';
 
 /** 全局style标签 */
 let rootStyleNode = null;
+
+/** 暂存组件的props属性 */
+let props = {};
+
+/** 共享数据store */
+let store = {};
+
+/**
+ * @description: 判断数据是否为指定的类型之一
+ * @author: 李永强
+ * @param {any} data: 需要判断的数据
+ * @param {string} types: 数据类型
+ * @return {boolean}: 是否是指定的类型之一
+ * @datetime: 2022-12-29 12:24:05
+ */
+const istype = (data, ...types) => {
+    const dataType = Object.prototype.toString.call(data).slice(8, -1)
+        .toUpperCase();
+    return types.some((type) => type.toUpperCase() === dataType);
+};
+
+const setStore = (data) => {
+    if (istype(data, 'Object')){
+        store = Lsnrctl.getProxyData(data);
+    } else {
+        console.error('store应该为简单object类型');
+    }
+};
 
 /**
  * @description: 渲染根节点
@@ -16,21 +43,21 @@ let rootStyleNode = null;
 const render = ({ root, component, style }) => {
     // 参数类型判断
     if (!istype(root, 'string')){
-        output.error('render的root参数应该存在并为string类型');
+        console.error('render的root参数应该存在并为string类型');
         return;
     }
     if (!istype(component, 'string')){
-        output.error('render的component参数应该存在并为string类型');
+        console.error('render的component参数应该存在并为string类型');
         return;
     }
     if (!istype(style, 'String', 'Undefined')){
-        output.error('render的style参数存在时应为string类型');
+        console.error('render的style参数存在时应为string类型');
         return;
     }
 
     const rootNode = document.querySelector(root);
     if (!rootNode){
-        output.error(`无法获取到元素: ${root}`);
+        console.error(`无法获取到元素: ${root}`);
         return;
     }
 
@@ -63,19 +90,19 @@ const render = ({ root, component, style }) => {
 const createComponent = ({ name, html = '', data = {}, style = '' }) => {
     // 参数类型判断
     if (!istype(name, 'string')){
-        output.error('Compoment的name参数应该存在并为string类型');
+        console.error('Compoment的name参数应该存在并为string类型');
         return;
     }
     if (!istype(html, 'string')){
-        output.error('Compoment的html参数应该存在并为string类型');
+        console.error('Compoment的html参数应该存在并为string类型');
         return;
     }
     if (!istype(data, 'object', 'function')){
-        output.error('Compoment的data参数应为 object 或 () => object 类型');
+        console.error('Compoment的data参数应为 object 或 () => object 类型');
         return;
     }
     if (!istype(style, 'string')){
-        output.error('Compoment的style参数应该存在并为string类型');
+        console.error('Compoment的style参数应该存在并为string类型');
         return;
     }
 
@@ -88,19 +115,20 @@ const createComponent = ({ name, html = '', data = {}, style = '' }) => {
 
     // 定义组件
     customElements.define(name, class extends HTMLElement{
-        constructor(){
-            super();
-            const props = this.retainAttrs || {};
+        connectedCallback(){
             const shadow = this.attachShadow({ mode: 'open' });
 
             // 代理数据
             let lsnrctlData;
             if (istype(data, 'Function')){
-                const funData = data(props);
+                props = this.retainAttrs || {};
+                const funData = data();
+                delete this.retainAttrs;
+                props = null;
                 if (istype(funData, 'Object')){
                     lsnrctlData = Lsnrctl.getProxyData(funData);
                 }  else {
-                    output.error('Compoment的data为函数时应该返回一个简单object');
+                    console.error('Compoment的data为函数时应该返回一个简单object');
                     return;
                 }
             } else {
@@ -128,10 +156,28 @@ const createComponent = ({ name, html = '', data = {}, style = '' }) => {
     });
 };
 
-const ref = (data) => Lsnrctl.getProxyData(data);
+/**
+ * @description: 监听数据
+ * @author: 李永强
+ * @param {any} data: 需要监听的数据
+ * @return {proxy}: 监听处理后的数据
+ * @datetime: 2022-12-29 14:39:41
+ */
+const bind = (data) => Lsnrctl.getProxyData(data);
+
+/**
+ * @description: 获取当前组件的props
+ * @author: 李永强
+ * @return {object}: 当前缓存的props
+ * @datetime: 2022-12-29 15:02:19
+ */
+const getProps = () => props;
 
 export {
     render,
     createComponent,
-    ref,
+    getProps,
+    bind,
+    setStore,
+    store,
 };

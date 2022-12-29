@@ -11,7 +11,7 @@ const IGNORE_RENDER_NODE_NAMES = ['SCRIPT'];
  * @author: 李永强
  * @datetime: 2022-12-06 13:03:58
  */
-export default class Render{
+export default class {
     /** 渲染的根元素 */
     root = null;
 

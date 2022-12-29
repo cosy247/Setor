@@ -6,7 +6,6 @@
   "author": "cosy247",
   "license": "ISC",
   "dependencies": {
-    "esprima": "^4.0.1",
     "node-html-parser": "^6.1.4"
   }
 }

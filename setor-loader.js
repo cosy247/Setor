@@ -34,14 +34,16 @@ module.exports = function(source){
 
     return `
         import { createComponent } from 'setor';
-        ${imports ? imports.join(';') : ''};
-
+        ${imports ? `${imports.join(';')};\n` : '\n'}
         createComponent({
-            name: \`${componnetName.toLowerCase()}\`,
-            html: \`${component.outerHTML}\`,
-            style: \`${style.innerHTML}\`,
+            name:
+\`${componnetName.toLowerCase()}\`,
+            html:
+\`${component.outerHTML}\`,
+            style:
+\`${style.innerHTML}\`,
             data(){
-                ${matchScriptString}
+${matchScriptString}
             },
         });
     `;
