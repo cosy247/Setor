@@ -1,36 +1,14 @@
 import Lsnrctl from './lsnrctl';
 import Render from './render';
+import uilt from './uilt';
+
+const { istype } = uilt;
 
 /** 全局style标签 */
 let rootStyleNode = null;
 
 /** 暂存组件的props属性 */
 let props = {};
-
-/** 共享数据store */
-let store = {};
-
-/**
- * @description: 判断数据是否为指定的类型之一
- * @author: 李永强
- * @param {any} data: 需要判断的数据
- * @param {string} types: 数据类型
- * @return {boolean}: 是否是指定的类型之一
- * @datetime: 2022-12-29 12:24:05
- */
-const istype = (data, ...types) => {
-    const dataType = Object.prototype.toString.call(data).slice(8, -1)
-        .toUpperCase();
-    return types.some((type) => type.toUpperCase() === dataType);
-};
-
-const setStore = (data) => {
-    if (istype(data, 'Object')){
-        store = Lsnrctl.getProxyData(data);
-    } else {
-        console.error('store应该为简单object类型');
-    }
-};
 
 /**
  * @description: 渲染根节点
@@ -122,15 +100,10 @@ const createComponent = ({ name, html = '', data = {}, style = '' }) => {
             let lsnrctlData = {};
             if (istype(data, 'Function')){
                 props = this.retainAttrs || {};
-                const funData = data();
+                data.call(lsnrctlData);
                 delete this.retainAttrs;
                 props = null;
-                if (istype(funData, 'Object')){
-                    lsnrctlData = Lsnrctl.getProxyData(funData);
-                }  else {
-                    console.error('Compoment的data为函数时应该返回一个简单object');
-                    return;
-                }
+                lsnrctlData = Lsnrctl.getProxyData(lsnrctlData);
             } else {
                 lsnrctlData = Lsnrctl.getProxyData(data);
             }
@@ -173,40 +146,9 @@ const bind = (data) => Lsnrctl.getProxyData(data);
  */
 const getProps = () => props;
 
-const hashEvents = new Set();
-window.addEventListener('hashchange', () => {
-    const { hash } = location;
-    hashEvents.forEach((callback) => callback(hash));
-});
-
-// 定义router组件
-customElements.define('app-router', class extends HTMLElement{
-    constructor(){
-        super();
-        this.innerHTML = '';
-        const componentName = this.getAttribute('component');
-        const path = `#${this.getAttribute('path')}` || '#';
-        const { hash } = location;
-
-        if (path === hash){
-            this.innerHTML = `<${componentName}></${componentName}>`;
-        }
-
-        hashEvents.add((hash) => {
-            if (path === hash){
-                this.innerHTML = `<${componentName}></${componentName}>`;
-            } else {
-                this.innerHTML = '';
-            }
-        });
-    }
-});
-
 export {
     render,
     createComponent,
     getProps,
     bind,
-    setStore,
-    store,
 };
