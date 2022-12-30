@@ -83,7 +83,7 @@ const createComponent = ({ name, html = '', data = {}, style = '' }) => {
         console.error('Compoment的style参数应该存在并为string类型');
         return;
     }
-
+    console.log([name]);
     // 检查组件是否被定义了
     if (customElements.get(name)) return;
 

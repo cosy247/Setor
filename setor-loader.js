@@ -1,7 +1,7 @@
 module.exports = function(source){
     const tags = [];
     {
-        const tagStrings = source.match(/<(.*?)( (.|\n)*?|\n(.|\n)*?)?>(.|\n)*?<\/\1>/g);
+        const tagStrings = source.replaceAll('`', '\\`').match(/<\s?(.*?)\b[^>]*>[\s\S]*<\/\1>/g);
         tagStrings.forEach((tagString) => {
             tags.push({
                 tagName: tagString.match(/<.*?>/)[0].slice(1, -1).trim()
@@ -42,7 +42,8 @@ module.exports = function(source){
 
     return `
         import { createComponent } from 'setor';
-        ${imports ? `${imports.join(';')};\n` : '\n'}
+        ${imports ? `${imports.join('\n')}` : '\n'}
+
         createComponent({
             name:
 \`${name}\`,
@@ -50,7 +51,6 @@ module.exports = function(source){
 \`${html}\`,
             data(){
 ${dataFunBody};
-return {};
             },
         });
     `;

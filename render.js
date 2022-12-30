@@ -4,7 +4,7 @@ import Lsnrctl from './lsnrctl';
 const IS_MOBILE = 'ontouchstart' in document;
 
 /** 不会渲染的节点名 */
-const IGNORE_RENDER_NODE_NAMES = ['SCRIPT'];
+const IGNORE_RENDER_NODE_NAMES = ['SCRIPT', 'STYLE'];
 
 /**
  * @description: 元素数据渲染

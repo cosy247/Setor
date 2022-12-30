@@ -12,7 +12,7 @@ const setStore = (data) => {
     }
 };
 
-export default {
+export {
     store,
     setStore,
 };
