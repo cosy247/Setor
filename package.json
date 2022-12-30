@@ -4,8 +4,5 @@
   "description": "setor",
   "main": "index.js",
   "author": "cosy247",
-  "license": "ISC",
-  "dependencies": {
-    "node-html-parser": "^6.1.4"
-  }
+  "license": "ISC"
 }

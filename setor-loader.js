@@ -1,49 +1,56 @@
-const { default: parse } = require('node-html-parser/dist/parse');
-
 module.exports = function(source){
-    const fragment = parse(source.replaceAll('`', '\\`'));
-    let script;
-    let style;
-    let component;
+    const tags = [];
+    {
+        const tagStrings = source.match(/<(.*?)( (.|\n)*?|\n(.|\n)*?)?>(.|\n)*?<\/\1>/g);
+        tagStrings.forEach((tagString) => {
+            tags.push({
+                tagName: tagString.match(/<.*?>/)[0].slice(1, -1).trim()
+                    .split(' ')[0],
+                outerHTML: tagString,
+            });
+        });
+    }
+
+    let name = '';
+    let html = '';
+    let dataFunBody = '';
 
     // 遍历子节点查找对应节点
-    fragment.childNodes.forEach((child) => {
-        const { tagName } = child;
-        if (!tagName) return;
-
-        if (tagName === 'SCRIPT'){
-            script = child;
-        } else if (tagName === 'STYLE'){
-            style = child;
+    tags.forEach((tag) => {
+        const { tagName, outerHTML } = tag;
+        if (tagName.toUpperCase() === 'SCRIPT'){
+            dataFunBody = outerHTML.replace(/^<\s?script\s?>/, '').replace(/<\s?\/\s?script\s?>$/, '')
+                .trim();
+        } else if (tagName.toUpperCase() === 'STYLE'){
+            html += `\n${outerHTML.replaceAll('\n', '').replace(/\s+/g, ' ')}`;
         } else if (tagName.indexOf('-') > 0){
-            component = child;
+            const nameSplit = tagName.split(':');
+            const rootTagName = nameSplit[1] || 'div';
+            [name] = nameSplit;
+            html += outerHTML
+                .replace(new RegExp(`^<\\s?${tagName}`), `<${rootTagName}`)
+                .replace(new RegExp(`${tagName}\\s?>$`), `${rootTagName}>`);
         }
     });
 
-    // 获取根节点名
-    const [componnetName, rootTagName] = component.tagName.split(':');
-    component.tagName = rootTagName || 'div';
-
     // 提取script中import语句
-    const scriptString = script.innerHTML;
-    const imports = scriptString.match(/import .*?(['"`]).*?\1/gm);
-    let matchScriptString = scriptString;
+    const imports = dataFunBody.match(/import .*?(['"`]).*?\1;?/gm);
     imports && imports.forEach((im) => {
-        matchScriptString = matchScriptString.replaceAll(im, '');
+        dataFunBody = dataFunBody.replaceAll(im, '');
     });
+    dataFunBody = dataFunBody.trim();
 
     return `
         import { createComponent } from 'setor';
         ${imports ? `${imports.join(';')};\n` : '\n'}
         createComponent({
             name:
-\`${componnetName.toLowerCase()}\`,
+\`${name}\`,
             html:
-\`${component.outerHTML}\`,
-            style:
-\`${style.innerHTML}\`,
+\`${html}\`,
             data(){
-${matchScriptString}
+${dataFunBody};
+return {};
             },
         });
     `;
