@@ -51,6 +51,7 @@ module.exports = function(source){
 \`${html}\`,
             data(){
 ${dataFunBody};
+return {};
             },
         });
     `;

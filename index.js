@@ -100,12 +100,9 @@ const createComponent = ({ name, html = '', data = {}, style = '' }) => {
             let lsnrctlData = {};
             if (istype(data, 'Function')){
                 props = this.retainAttrs || {};
-                data.call(lsnrctlData);
                 delete this.retainAttrs;
+                lsnrctlData = Lsnrctl.getProxyData(data());
                 props = null;
-                lsnrctlData = Lsnrctl.getProxyData(lsnrctlData);
-            } else {
-                lsnrctlData = Lsnrctl.getProxyData(data);
             }
 
             // 渲染节点
@@ -149,6 +146,7 @@ const getProps = () => props;
 export {
     render,
     createComponent,
+
     getProps,
     bind,
 };
