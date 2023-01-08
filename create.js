@@ -1,4 +1,4 @@
-import {createRoot, createComponent} from './create';
+import Lsnrctl from './lsnrctl';
 import Render from './render';
 import uilt from './uilt';
 
@@ -143,7 +143,7 @@ const bind = (data) => Lsnrctl.getProxyData(data);
  */
 const getProps = () => props;
 
-export {
+export default {
     createRoot,
     createComponent,
 
