@@ -4,11 +4,9 @@ import uilt from './uilt';
 
 const { istype } = uilt;
 
-/** 全局style标签 */
-let rootStyleNode = null;
-
-/** 暂存组件的props属性 */
-let props = {};
+/** 样式添加结点 */
+const styleDom = document.createElement('style');
+document.head.appendChild(styleDom);
 
 /**
  * @description: 渲染根节点
@@ -39,20 +37,12 @@ const createRoot = ({ root, component, style }) => {
         return;
     }
 
-    if (style){
-        const styleStirng = style.trim().replace(/\s+/g, ' ');
-        if (styleStirng !== ''){
-            rootStyleNode = document.createElement('style');
-            rootStyleNode.innerHTML = styleStirng;
-            rootStyleNode.setAttribute('name', 'root-style');
-            document.head.appendChild(rootStyleNode);
-        }
+    if (style) {
+        styleDom.innerHTML += style.replace(/\s+/,' ');
     }
 
-    const appRootComponent = document.createElement(component);
     setTimeout(() => {
-        rootNode.innerHTML = '';
-        rootNode.append(appRootComponent);
+        rootNode.innerHTML = `<${component}></${component}>`;
     });
 };
 
@@ -65,7 +55,7 @@ const createRoot = ({ root, component, style }) => {
  * @param {undefined | string} object.style: 样式文本
  * @datetime: 2022-12-14 17:37:43
  */
-const createComponent = ({ name, html = '', data = {}, style = '' }) => {
+const createComponent = ({ name, html = '', data = () => {}, style = '' }) => {
     // 参数类型判断
     if (!istype(name, 'string')){
         console.error('Compoment的name参数应该存在并为string类型');
@@ -75,7 +65,7 @@ const createComponent = ({ name, html = '', data = {}, style = '' }) => {
         console.error('Compoment的html参数应该存在并为string类型');
         return;
     }
-    if (!istype(data, 'object', 'function')){
+    if (!istype(data, 'function')){
         console.error('Compoment的data参数应为 object 或 () => object 类型');
         return;
     }
@@ -83,13 +73,18 @@ const createComponent = ({ name, html = '', data = {}, style = '' }) => {
         console.error('Compoment的style参数应该存在并为string类型');
         return;
     }
-    console.log([name]);
+
     // 检查组件是否被定义了
     if (customElements.get(name)) return;
 
+    // 添加style
+    if (style) {
+        styleDom.innerHTML += style.replace(/\s+/g, ' ');
+    }
+
     // 处理html代码的自闭和标签
-    const closureHtml = html.trim().replace(/<(?:(?!\/>).|\n)*?\/>/gm, (res) => `${res.slice(0, -2)}></${res.slice(1, res.search(/ |[\\/>]/))}>`);
-    const fragment = document.createRange().createContextualFragment(closureHtml);
+    const fragment = document.createRange().createContextualFragment(html.trim());
+    console.log(fragment);
 
     // 定义组件
     customElements.define(name, class extends HTMLElement{
@@ -97,31 +92,15 @@ const createComponent = ({ name, html = '', data = {}, style = '' }) => {
             const shadow = this.attachShadow({ mode: 'closed' });
 
             // 代理数据
-            let lsnrctlData = {};
-            if (istype(data, 'Function')){
-                props = this.retainAttrs || {};
-                delete this.retainAttrs;
-                lsnrctlData = Lsnrctl.getProxyData(data());
-                props = null;
-            }
+            const lsnrctlData = Lsnrctl.getProxyData(data(this.retainAttrs));
 
             // 渲染节点
             const newFragment = fragment.cloneNode(true);
             new Render(newFragment, lsnrctlData);
 
-            // 添加rootStyle
-            rootStyleNode && newFragment.appendChild(rootStyleNode.cloneNode(true));
-
-            // 添加style
-            const styleStirng = style.trim().replace(/\s+/g, ' ');
-            if (styleStirng !== ''){
-                const styleDom = document.createElement('style');
-                styleDom.innerHTML = styleStirng;
-                newFragment.appendChild(styleDom);
-            }
-
-            // 挂载节点
-            shadow.append(newFragment);
+            // 替换节点
+            this.parentNode.insertBefore(newFragment, this);
+            this.parentNode.removeChild(this);
         }
     });
 };
