@@ -13,6 +13,7 @@ module.exports = function(source){
 
     let name = '';
     let html = '';
+    let style = '';
     let dataFunBody = '';
 
     // 遍历子节点查找对应节点
@@ -22,7 +23,7 @@ module.exports = function(source){
             dataFunBody = outerHTML.replace(/^<\s?script\s?>/, '').replace(/<\s?\/\s?script\s?>$/, '')
                 .trim();
         } else if (tagName.toUpperCase() === 'STYLE'){
-            html += `\n${outerHTML.replaceAll('\n', '').replace(/\s+/g, ' ')}`;
+            style += outerHTML.replace(/^<\s?style\s?>/, ' ').replace(/<\s?\/\s?style\s?>$/, ' ').replace(/\s+/g, ' ');
         } else if (tagName.indexOf('-') > 0){
             const nameSplit = tagName.split(':');
             const rootTagName = nameSplit[1] || 'div';
@@ -49,6 +50,8 @@ module.exports = function(source){
 \`${name}\`,
             html:
 \`${html}\`,
+            style:
+\`${style}\`,
             data(){
 ${dataFunBody};
 return {};
