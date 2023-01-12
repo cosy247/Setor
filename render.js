@@ -6,6 +6,9 @@ const IS_MOBILE = 'ontouchstart' in document;
 /** 不会渲染的节点名 */
 const IGNORE_RENDER_NODE_NAMES = ['SCRIPT', 'STYLE'];
 
+/** 绑定事件并读取，得到取值函数 */
+const funDom = document.createElement('div');
+
 /**
  * @description: 元素数据渲染
  * @author: 李永强
@@ -15,23 +18,19 @@ export default class {
     /** 渲染的根元素 */
     root = null;
 
-    /** 渲染数据的key值 */
-    dataKeys = [];
-    /** 渲染数据的value值 */
-    dataValues = [];
+    /** 渲染数据 */
+    data = {};
 
     /** 是否已经渲染完成 */
     isRendered = false;
     /** 渲染完成回调函数集 */
     rendered = [];
 
-    /** for循环的缓存key值 */
-    forKeys = [];
-    /** for循环的缓存value值 */
-    forValues = [];
+    /** for循环的数据 */
+    forData = {};
 
     ifConditions = [];
-    lastIfElement = null;
+    preIfElement = null;
 
     putNodes = {};
 
@@ -44,8 +43,7 @@ export default class {
      */
     constructor(root, data){
         this.root = root;
-        this.dataKeys = Object.keys(data);
-        this.dataValues = Object.values(data);
+        this.data = data;
 
         // 在html文档加载完成后渲染
         if (window.document.readyState === 'loading'){
@@ -567,7 +565,7 @@ export default class {
                         clickCount = 0;
                     }, 500);
                 }
-            },  adorns);
+            }, adorns);
             this.renderEventForNormal(node, 'touchend', (event) => {
                 event.preventDefault();
                 event.returnValue = false;
@@ -580,7 +578,7 @@ export default class {
                     valueFun(event);
                 }
                 return false;
-            },     adorns);
+            }, adorns);
         } else {
             this.renderEventForNormal(node, 'dbclick', valueString, adorns);
         }
@@ -608,8 +606,8 @@ export default class {
      */
     renderSpecials(node, specialAttrs){
         Object.entries(specialAttrs).forEach(([attrAllName, [attrName, adorns, valueString]]) => {
-            // until之外的特色属性删除其原属性
-            attrName === 'until' || node.removeAttribute(attrAllName);
+            node.removeAttribute(attrAllName);
+            
             // 是否断开渲染
             let breakRender = false;
             if (attrName === 'for'){
@@ -620,15 +618,10 @@ export default class {
                 breakRender = this.renderSpecialForElif(node, valueString, adorns);
             } else if (attrName === 'else'){
                 breakRender = this.renderSpecialForElse(node, adorns);
-            } else if (attrName === 'until'){
-                breakRender = this.renderSpecialForUntil(node, adorns);
             } else if (attrName === 'show'){
                 breakRender = this.renderSpecialForShow(node, valueString, adorns);
-            } else if (attrName === 'rise'){
-                breakRender = this.renderSpecialForRise(node, valueString, adorns);
-            } else if (attrName === 'put'){
-                breakRender = this.renderSpecialForPut(node, valueString, adorns);
             }
+
             if (breakRender) return true;
         });
     }
@@ -704,251 +697,127 @@ export default class {
         return true;
     }
 
-    renderSpecialForIf(node, valueString){
-        const ifAnchor = document.createComment('if');
-        node.parentNode.insertBefore(ifAnchor, node);
+    /**
+     * @description: 渲染-if属性，当表达式值为真时渲染
+     * @author: 李永强
+     * @param {Element} node: 渲染的标签
+     * @param {string} valueString: 获取属性值的表达式
+     * @datetime: 2023-01-12 15:02:45
+     */
+    renderSpecialForIf(node, valueString) {
         const valueFun = this.getValueFun(valueString);
 
+        // 生成锚点
+        const ifAnchor = document.createComment('if');
+        node.parentNode.insertBefore(ifAnchor, node);
+
+        // 记录if值函数和节点，方便elif和else属性渲染
         this.ifConditions = [valueFun];
-        this.lastIfElement = node;
+        this.preIfElement = [node, ifAnchor];
 
         this.setLsnrctlCallback(() => {
             if (valueFun()){
                 ifAnchor.parentNode.insertBefore(node, ifAnchor);
             } else {
-                ifAnchor.parentNode.removeChild(node);
+                node.parentNode && node.parentNode.removeChild(node);
             }
         }, node);
     }
 
+
+    /**
+     * @description: 渲染-elif属性，当之前表达式值都为假且当前表达式值为真时渲染
+     * @author: 李永强
+     * @param {Element} node: 渲染的标签
+     * @param {string} valueString: 获取属性值的表达式
+     * @datetime: 2023-01-12 15:08:46
+     */
     renderSpecialForElif(node, valueString){
-        if (this.ifConditions.length === 0) return;
+        const valueFun = this.getValueFun(valueString);
 
-        const { previousElementSibling } = node;
-        if (!previousElementSibling || previousElementSibling !== this.lastIfElement) return;
+        // 查看节点前一个节点是否为判断节点
+        let { previousSibling } = node;
+        while (previousSibling.nodeName == '#text') previousSibling = previousSibling.previousSibling;
+        if (!previousSibling || !this.preIfElement.includes(previousSibling)) {
+            console.error('-elif属性节点位置错误', node);
+            return;
+        };
 
+        // 生成锚点
         const elifAnchor = document.createComment('elif');
         node.parentNode.insertBefore(elifAnchor, node);
 
-        const valueFun = this.getValueFun(valueString);
+        // 保存判断函数队列，记录if值函数和节点，方便elif和else属性渲染
         const ifConditions = [...this.ifConditions];
         this.ifConditions.push(valueFun);
-        this.lastIfElement = node;
+        this.preIfElement = [node, elifAnchor];
 
         this.setLsnrctlCallback(() => {
-            ifConditions.some((condition) => {
-                if (condition()){
-                    elifAnchor.parentNode.removeChild(node);
-                    return true;
-                }
-                return false;
-            });
-            elifAnchor.parentNode.insertBefore(node, elifAnchor);
+            // 如果之前的判断函数中有真，那么隐藏当前节点。之前判断函数都为假并且当前判断函数为真则显示节点
+            if (ifConditions.find((condition) => condition()) || !valueFun()) {
+                node.parentNode && node.parentNode.removeChild(node);
+            } else {
+                elifAnchor.parentNode.insertBefore(node, elifAnchor);
+            }
         }, node);
     }
 
+    /**
+     * @description: 渲染-else属性，当之前表达式值都为假时渲染
+     * @author: 李永强
+     * @param {Element} node: 渲染的标签
+     * @param {string} valueString: 获取属性值的表达式
+     * @datetime: 2023-01-12 15:18:35
+     */
     renderSpecialForElse(node){
-        if (this.ifConditions.length === 0) return;
+        // 查看节点前一个节点是否为判断节点
+        let { previousSibling } = node;
+        while (previousSibling.nodeName == '#text') previousSibling = previousSibling.previousSibling;
+        console.log(previousSibling);
+        if (!previousSibling || !this.preIfElement.includes(previousSibling)) {
+            console.error('-else属性节点位置错误', node);
+            return;
+        };
 
-        const { previousElementSibling } = node;
-        if (!previousElementSibling || previousElementSibling !== this.lastIfElement) return;
-
+        // 生成锚点
         const elseAnchor = document.createComment('elif');
         node.parentNode.insertBefore(elseAnchor, node);
 
+        // 保存判断函数队列，清空if值函数和节点
         const ifConditions = [...this.ifConditions];
-
         this.ifConditions = [];
-        this.lastIfElement = null;
+        this.preIfElement = null;
 
         this.setLsnrctlCallback(() => {
-            ifConditions.some((condition) => {
-                if (condition()){
-                    elseAnchor.parentNode.removeChild(node);
-                    return true;
-                }
-                return false;
-            });
-            elseAnchor.parentNode.insertBefore(node, elseAnchor);
-        }, node);
-    }
-
-    renderSpecialForUntil(node){
-        this.rendered.push(() => {
-            node.removeAttribute('-until');
-        });
-    }
-
-    renderSpecialForShow(node, valueString, adorns){
-        const valueFun = this.getValueFun(valueString);
-        const { display } = node.style;
-        let shiftStyle = {
-            display: (value) => (value ? display : 'none'),
-        };
-        if (adorns.includes('opacity')){
-            const { opacity } = node.style;
-            const { pointerEvents } = node.style;
-            shiftStyle = {
-                opacity: (value) => (value ? opacity : 0),
-                pointerEvents: (value) => (value ? pointerEvents : 'none'),
-            };
-        }
-        this.setLsnrctlCallback(() => {
-            const value = valueFun();
-            Object.entries(shiftStyle).forEach(([styleName, styleValueFun]) => {
-                node.style[styleName] = styleValueFun(value);
-            });
-        }, node);
-    }
-
-    renderSpecialForRise(node, valueString, adorns){
-        const keyframes = this.renderSpecialForRiseAdorns(node, adorns);
-        const valueFun = this.getValueFun(valueString);
-
-        this.setLsnrctlCallback(() => {
-            if (valueFun()){
-                node.animate(keyframes, {
-                    duration: this.isRendered ? 500 : 0,
-                    fill: 'both',
-                });
+            // 如果之前的判断函数中有真，那么隐藏当前节点。之前判断函数都为假则显示节点
+            if (ifConditions.find((condition) => condition())) {
+                node.parentNode && node.parentNode.removeChild(node);
             } else {
-                node.animate(keyframes, {
-                    duration: this.isRendered ? 500 : 0,
-                    fill: 'both',
-                    direction: 'reverse',
-                });
+                elseAnchor.parentNode.insertBefore(node, elseAnchor);
             }
         }, node);
     }
 
-    renderSpecialForRiseAdorns(node, adorns){
-        const nodeStyle = getComputedStyle(node);
-        const keyframes = {
-            offset: [0, 1],
-            visibility: ['hidden', 'visible'],
-        };
+    /**
+     * @description: 渲染-show属性，当表达式值都为真时显示
+     * @author: 李永强
+     * @param {Element} node: 渲染的标签
+     * @param {string} valueString: 获取属性值的表达式
+     * @datetime: 2023-01-12 16:44:10
+     */
+    renderSpecialForShow(node, valueString){
+        const valueFun = this.getValueFun(valueString);
 
-        if (adorns.includes('opacity')){
-            keyframes.opacity = [0, parseFloat(nodeStyle.opacity)];
-        }
+        // 获取display默认值
+        const { display } = node.style;
 
-        let matrix = nodeStyle.transform;
-        let matrixs;
-        let is3d;
-        if (matrix === 'none'){
-            matrix = 'matrix(1,0,0,1,0,0)';
-            matrixs = [
-                [1, 0, 0],
-                [0, 1, 0],
-                [0, 0, 1],
-            ];
-        } else {
-            is3d = matrix.indexOf('3d') >= 0;
-            matrixs = matrix
-                .slice(is3d ? 9 : 7, -1)
-                .split(',')
-                .map((number) => +number);
-        }
-
-        const translate = [
-            [1, 0, 0],
-            [0, 1, 0],
-            [0, 0, 1],
-        ];
-        if (adorns.includes('left')){
-            translate[0][2] = -20;
-        } else if (adorns.includes('right')){
-            translate[0][2] = 20;
-        }
-        if (adorns.includes('bottom')){
-            translate[1][2] = 20;
-        } else if (adorns.includes('top')){
-            translate[1][2] = -20;
-        }
-
-        const scale = [
-            [1, 0, 0],
-            [0, 1, 0],
-            [0, 0, 1],
-        ];
-        if (adorns.includes('scale')){
-            scale[0][0] = 0.0001;
-            scale[1][1] = 0.0001;
-        } else if (adorns.includes('scaleX')){
-            scale[0][0] = 0.0001;
-        } else if (adorns.includes('scaleY')){
-            scale[1][1] = 0.0001;
-        }
-
-        const rotate = [
-            [1, 0, 0],
-            [0, 1, 0],
-            [0, 0, 1],
-        ];
-        if (adorns.includes('rotate')){
-            rotate[0][0] = Math.cos(Math.PI);
-            rotate[1][1] = Math.cos(Math.PI);
-            rotate[0][1] = -Math.sin(Math.PI);
-            rotate[1][0] = Math.sin(Math.PI);
-        }
-
-        const newMatrixs = [translate, scale, rotate].reduce((aMatrixs, bMatrixs) => {
-            const cMatrixs = [
-                [0, 0, 0],
-                [0, 0, 0],
-                [0, 0, 0],
-            ];
-            for (let ii = 0; ii < 3; ii++){
-                for (let jj = 0; jj < 3; jj++){
-                    for (let kk = 0; kk < 3; kk++){
-                        cMatrixs[ii][jj] += aMatrixs[ii][kk] * bMatrixs[kk][jj];
-                    }
-                }
+        this.setLsnrctlCallback(() => {
+            if (valueFun()) {
+                node.style.display = display;
+            } else {
+                node.style.display = 'none';
             }
-            return cMatrixs;
-        }, matrixs);
-
-        const newMatrix = `matrix(${newMatrixs[0][0]},${newMatrixs[1][0]},${newMatrixs[0][1]},${newMatrixs[1][1]},${newMatrixs[0][2]},${newMatrixs[1][2]})`;
-        keyframes.transform = [newMatrix, matrix];
-
-        return keyframes;
-    }
-
-    renderSpecialForPut(node, valueString, adorns){
-        const putAnchor = document.createComment('put');
-        node.parentNode.insertBefore(putAnchor, node);
-
-        if (adorns.includes('id')){
-            node.parentNode.removeChild(node);
-            this.putNodes[valueString] = putAnchor;
-        } else {
-            const valueFun = this.getValueFun(valueString);
-            this.setLsnrctlCallback(() => {
-                const value = valueFun();
-                let newAnchor;
-                if (Object.prototype.toString.call(value) === '[object Object]'){
-                    Object.entries(value).some(([selector, active]) => {
-                        if (active){
-                            newAnchor = selector;
-                            return true;
-                        }
-                        return false;
-                    });
-                } else {
-                    newAnchor = value;
-                }
-
-                if (newAnchor === '#'){
-                    newAnchor = putAnchor;
-                } else {
-                    newAnchor = this.putNodes[value];
-                }
-
-                if (newAnchor && newAnchor !== node.nextSibling){
-                    newAnchor.parentNode.insertBefore(node, newAnchor);
-                }
-            });
-        }
+        }, node);
     }
 
     // specialRetains
@@ -963,25 +832,44 @@ export default class {
         });
     }
 
-    // setLsnrctlCallback
-    setLsnrctlCallback(callback){
-        Lsnrctl.callback = callback;
+    /**
+     * @description: 在节点存在于文档中时执行监听回调函数
+     * @author: 李永强
+     * @param {function} callback: 回调函数
+     * @param {node} node: 当前作用的节点
+     * @datetime: 2023-01-12 16:51:19
+     */
+    setLsnrctlCallback(callback, node) {
+        Lsnrctl.callback = () => callback();
         Lsnrctl.callback();
         Lsnrctl.callback = null;
     }
 
-    // getValueFun
-    getValueFun(valueString){
-        const valueFunBody = valueString.replaceAll('\n', '\\n') || undefined;
-        const { dataKeys } = this;
-        const { dataValues } = this;
-        const forKeys = [...this.forKeys];
-        const forValueFuns = [...this.forValues];
-        return () => {
-            const funProps = [...dataKeys, ...forKeys];
-            const funValues = [...dataValues, ...forValueFuns.map((value) => value())];
-            // eslint-disable-next-line no-new-func
-            return new Function(...funProps, `return (${valueFunBody})`)(...funValues);
-        };
+    /**
+     * @description: 根据表达式字符串通过标签的事件属性获取取值函数
+     * @author: 李永强
+     * @param {string} valueString: 取值表达式
+     * @return {function}: 取值函数
+     * @datetime: 2023-01-12 16:49:55
+     */
+    getValueFun(valueString) {
+        funDom.setAttribute('onclick', `return ({${Object.keys(this.data).join(',')}}, {${Object.keys(this.forData).join(',')}}) => ${valueString || 'undefined'}`);
+        return funDom.onclick().bind(window, this.data, this.forData);
+
+        // const { dataKeys,dataValues  } = this;
+        // const funProps = [...dataKeys, ...forKeys];
+        // funDom.setAttribute('onclick', `return ({${funProps.join(',')}}) => return ${valueString || 'undefined'}`);
+        // const valueFun = funDom.onclick();
+
+        // const valueFunBody = valueString.replaceAll('\n', '\\n') || undefined;
+        // const { dataKeys } = this;
+        // const { dataValues } = this;
+        // const forKeys = [...this.forKeys];
+        // const forValueFuns = [...this.forValues];
+        // return () => {
+        //     const funValues = [...dataValues, ...forValueFuns.map((value) => value())];
+        //     // eslint-disable-next-line no-new-func
+        //     return new Function(...funProps, `return (${valueFunBody})`)(...funValues);
+        // };
     }
 }
