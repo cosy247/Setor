@@ -54,7 +54,6 @@ module.exports = function(source){
 \`${style}\`,
             data(){
 ${dataFunBody};
-return {};
             },
         });
     `;

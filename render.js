@@ -1,4 +1,4 @@
-import Lsnrctl from './lsnrctl';
+import Lsnrctl from './Lsnrctl';
 
 /** 是否为手机端 */
 const IS_MOBILE = 'ontouchstart' in document;

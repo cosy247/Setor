@@ -4,5 +4,6 @@
   "description": "setor",
   "main": "index.js",
   "author": "cosy247",
-  "license": "ISC"
+  "license": "ISC",
+  "files": ["./index.js"]
 }

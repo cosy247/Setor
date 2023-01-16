@@ -3,7 +3,7 @@
  * @author: 李永强
  * @datetime: 2022-12-06 13:03:21
  */
-export default {
+const Lsnrctl = {
     /** 当前数据改变回调函数 */
     callback: null,
     /** 是否在执行回调函数中 */
@@ -39,31 +39,31 @@ export default {
             // 获取属性时对属性和回调函数进行绑定
             get: (target, key, receiver) => {
                 // 为数据绑定变化后的回调函数
-                if (typeof key !== 'symbol' && this.callback){
+                if (typeof key !== 'symbol' && Lsnrctl.callback){
                     const allCallbackKey = `${callbackKey}.${key}`;
                     if (!callbacks[allCallbackKey]){
                         callbacks[allCallbackKey] = new Set();
                     }
-                    callbacks[allCallbackKey].add(this.callback);
+                    callbacks[allCallbackKey].add(Lsnrctl.callback);
                 }
 
                 // recorderValue清空后记录一次，记录第一次使用到的值
-                this.recorderValue
-                    || (this.recorderValue = {
+                Lsnrctl.recorderValue
+                    || (Lsnrctl.recorderValue = {
                         set(value){
                             Reflect.set(target, key, value, receiver);
-                            this.handCalls(callbacks, `${callbackKey}.${key}`);
+                            Lsnrctl.handCalls(callbacks, `${callbackKey}.${key}`);
                         },
                     });
 
                 // 获取value并处理（只处理对象自身的非symbol属性的对象值）
                 let value = Reflect.get(target, key, receiver);
                 if (typeof key !== 'symbol' && Object.hasOwn(target, key)){
-                    if (Object.prototype.toString.call(value) === '[object Object]' && !Object.hasOwn(value, this.proxySymbol)){
+                    if (Object.prototype.toString.call(value) === '[object Object]' && !Object.hasOwn(value, Lsnrctl.proxySymbol)){
                         // 渲染为proxy监听对象，添加symbol值作为标识
-                        value = new Proxy(value, this.getProxyHandler(callbacks, `${callbackKey}.${key}`));
+                        value = new Proxy(value, Lsnrctl.getProxyHandler(callbacks, `${callbackKey}.${key}`));
                         Reflect.set(target, key, value, receiver);
-                        value[this.proxySymbol] = true;
+                        value[Lsnrctl.proxySymbol] = true;
                     }
                 }
 
@@ -78,7 +78,7 @@ export default {
                 const reflect = Reflect.set(target, key, newValue, receiver);
                 // 只对不是symbol的属性进行回调执行
                 if (typeof key !== 'symbol'){
-                    this.handCalls(callbacks, `${callbackKey}.${key}`);
+                    Lsnrctl.handCalls(callbacks, `${callbackKey}.${key}`);
                 }
                 return reflect;
             },
@@ -87,7 +87,7 @@ export default {
             deleteProperty(target, key, receiver){
                 const reflect = Reflect.deleteProperty(target, key, receiver);
                 if (typeof key !== 'symbol' && Reflect.has(target, key, receiver)){
-                    this.handCalls(callbacks, `${callbackKey}.${key}`);
+                    Lsnrctl.handCalls(callbacks, `${callbackKey}.${key}`);
                 }
                 return reflect;
             },
@@ -103,8 +103,8 @@ export default {
      */
     handCalls(callbacks, callbackKey){
         // 创建锁，防止无限回调；在执行回调时改变值将不再引起回调
-        if (this.isCalling) return;
-        this.isCalling = true;
+        if (Lsnrctl.isCalling) return;
+        Lsnrctl.isCalling = true;
 
         // 获取需要执行的回调函数（callbacksArray为二维数组）
         const callbacksArray = [];
@@ -115,22 +115,22 @@ export default {
         });
 
         // 是否自动更新
-        if (this.autoRefresh){
+        if (Lsnrctl.autoRefresh){
             // 自动更新时将在当前任务队列完成后执行回调函数
             setTimeout(() => {
                 callbacksArray.forEach((callback) => {
-                    this.callback = callback;
+                    Lsnrctl.callback = callback;
                     callback();
-                    this.callback = null;
+                    Lsnrctl.callback = null;
                 });
             });
         } else {
             // 手动更新将把回调函数队列保存，等待手动调用更新函数
-            callbacksArray.forEach((callback) => this.refreshCalls.add(callback));
+            callbacksArray.forEach((callback) => Lsnrctl.refreshCalls.add(callback));
         }
 
         // 解开锁
-        this.isCalling = false;
+        Lsnrctl.isCalling = false;
     },
 
     /**
@@ -144,10 +144,10 @@ export default {
         if (typeof data === 'function'){
             return data;
         }
-        if (typeof data === 'object' && data !== null){
-            return new Proxy(data, this.getProxyHandler());
+        if (typeof data === 'object' && data !== null) {
+            return new Proxy(data, Lsnrctl.getProxyHandler());
         }
-        return new Proxy({ value: data }, this.getProxyHandler());
+        return new Proxy({ value: data }, Lsnrctl.getProxyHandler());
     },
 
     /**
@@ -156,7 +156,7 @@ export default {
      * @datetime: 2022-12-06 11:55:31
      */
     clearRefresh(){
-        this.refreshCalls.clear();
+        Lsnrctl.refreshCalls.clear();
     },
 
     /**
@@ -165,19 +165,20 @@ export default {
      * @datetime: 2022-12-06 11:56:48
      */
     refresh(){
-        if (this.autoRefresh) return;
+        if (Lsnrctl.autoRefresh) return;
 
         // 创建锁，防止无限回调；在执行回调时改变值将不再引起回调
-        this.isCalling = true;
+        Lsnrctl.isCalling = true;
 
-        this.refreshCalls.forEach((callback) => {
-            this.callback = callback;
+        Lsnrctl.refreshCalls.forEach((callback) => {
+            Lsnrctl.callback = callback;
             callback();
-            this.callback = null;
+            Lsnrctl.callback = null;
         });
-        this.clearRefresh();
+        Lsnrctl.clearRefresh();
 
         // 解开锁
-        this.isCalling = false;
+        Lsnrctl.isCalling = false;
     },
 };
+export default Lsnrctl;
