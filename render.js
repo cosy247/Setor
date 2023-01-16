@@ -773,7 +773,6 @@ export default class {
         // 查看节点前一个节点是否为判断节点
         let { previousSibling } = node;
         while (previousSibling.nodeName == '#text') previousSibling = previousSibling.previousSibling;
-        console.log(previousSibling);
         if (!previousSibling || !this.preIfElement.includes(previousSibling)) {
             console.error('-else属性节点位置错误', node);
             return;
@@ -840,8 +839,8 @@ export default class {
      * @datetime: 2023-01-12 16:51:19
      */
     setLsnrctlCallback(callback, node) {
-        Lsnrctl.callback = () => callback();
-        Lsnrctl.callback();
+        Lsnrctl.callback = () => document.contains(node) && callback();
+        callback();
         Lsnrctl.callback = null;
     }
 

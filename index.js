@@ -90,8 +90,6 @@ const createComponent = ({ name, html = '', data = () => {}, style = '' }) => {
         name,
         class extends HTMLElement {
             connectedCallback() {
-                const shadow = this.attachShadow({ mode: 'closed' });
-
                 // 代理数据
                 const mapIndex = dataMap.length;
                 const lsnrctlData = {};
@@ -198,10 +196,26 @@ const store = ((storeData) => ({
 
 // 定义app-router组件
 {
-    const hashEvents = new Set();
-    window.addEventListener('hashchange', () => {
-        const { hash } = location;
-        hashEvents.forEach((callback) => callback(hash));
+    const hashEvents = {};
+
+    // 监听路由变化
+    window.addEventListener('hashchange', (e) => {
+        const newHash = e.newURL.match(/#\/.*?(?=(\?|$))/g) ? e.newURL.match(/#\/.*?(?=(\?|$))/g)[0] : '';
+        const oldHash = e.oldURL.match(/#\/.*?(?=(\?|$))/g) ? e.oldURL.match(/#\/.*?(?=(\?|$))/g)[0] : '';
+
+        if (newHash === oldHash) {
+            return;
+        }
+
+        // 移除旧的router组件
+        hashEvents.hasOwnProperty(oldHash) && hashEvents[oldHash].forEach(({ routerRoot }) => {
+            routerRoot.parentNode.removeChild(routerRoot);
+        })
+
+        // 添加旧新router组件
+        hashEvents.hasOwnProperty(newHash) && hashEvents[newHash].forEach(({ routerAnchor, routerRoot }) => {
+            routerAnchor.parentNode.insertBefore(routerRoot, routerAnchor);
+        })
     });
 
     // 定义router组件
@@ -209,32 +223,36 @@ const store = ((storeData) => ({
         'app-router',
         class extends HTMLElement {
             connectedCallback() {
+                // 获取hash
+                let hash = location.hash.match(/^#\/.*?(?=(\?|$))/g);
+                hash = hash ? hash[0] : '';
+
+                // 获取path
+                const path = `#/${this.getAttribute('path')}` || '#/';
+                this.removeAttribute('path');
+
                 // 创建锚点
-                const routerAnchor = document.createComment('if');
-
-                //
-
+                const routerAnchor = document.createComment('router');
+                this.parentNode.insertBefore(routerAnchor, this);
                 this.parentNode.removeChild(this);
-                
-                // 在内存中创建节点
-                const fragment = document.createRange().createContextualFragment(this.innerHTML.trim())
 
-                // const componentName = this.getAttribute('component');
-                // const path = `#${this.getAttribute('path')}` || '#';
-                // console.log(path);
-                // const { hash } = location;
+                // 创建router根节点
+                const routerRoot = document.createElement('div');
+                const fragment = document.createRange().createContextualFragment(this.innerHTML.trim());
+                routerRoot.appendChild(fragment);
+                [...this.attributes].forEach(({ name, value }) => routerRoot.setAttribute(name, value));
 
-                // if (path === hash) {
-                //     this.innerHTML = `<${componentName}></${componentName}>`;
-                // }
+                // 判断当前路由
+                if (path === hash) {
+                    routerAnchor.parentNode.insertBefore(routerRoot, routerAnchor);
+                }
 
-                // hashEvents.add((hash) => {
-                //     if (path === hash) {
-                //         this.innerHTML = `<${componentName}></${componentName}>`;
-                //     } else {
-                //         this.innerHTML = '';
-                //     }
-                // });
+                // 监听
+                hashEvents.hasOwnProperty(path) || (hashEvents[path] = []);
+                hashEvents[path].push({
+                    routerAnchor,
+                    routerRoot,
+                })
             }
         }
     );
