@@ -839,7 +839,7 @@ export default class {
      * @datetime: 2023-01-12 16:51:19
      */
     setLsnrctlCallback(callback, node) {
-        Lsnrctl.callback = () => document.contains(node) && callback();
+        Lsnrctl.callback = () => document.contains(this.root) && callback();
         callback();
         Lsnrctl.callback = null;
     }

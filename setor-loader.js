@@ -24,10 +24,10 @@ module.exports = function(source){
                 .trim();
         } else if (tagName.toUpperCase() === 'STYLE'){
             style += outerHTML.replace(/^<\s?style\s?>/, ' ').replace(/<\s?\/\s?style\s?>$/, ' ').replace(/\s+/g, ' ');
-        } else if (tagName.indexOf('-') > 0){
+        } else if (tagName.indexOf('-') > 0 || tagName[0].toUpperCase() === tagName[0]){
             const nameSplit = tagName.split(':');
             const rootTagName = nameSplit[1] || 'div';
-            [name] = nameSplit;
+            name = nameSplit[0].includes('-') ? nameSplit[0] : `app-${nameSplit[0]}`;
             html += outerHTML
                 .replace(new RegExp(`^<\\s?${tagName}`), `<${rootTagName}`)
                 .replace(new RegExp(`${tagName}\\s?>$`), `${rootTagName}>`);

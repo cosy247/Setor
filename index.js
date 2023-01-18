@@ -82,12 +82,17 @@ const createComponent = ({ name, html = '', data = () => {}, style = '' }) => {
         styleDom.innerHTML += style.replace(/\s+/g, ' ');
     }
 
-    // 处理html代码的自闭和标签
-    const fragment = document.createRange().createContextualFragment(html.trim());
+    // 更正组件名
+    const componentName = name.includes('-') ? name.toLowerCase() : `app-${name.toLowerCase()}`;
 
+    // 处理组件标签重命名和自闭和标签
+    const filterHtml = html
+        .trim()
+        .replace(/((?<=<\s?)[A-Z](?=(.*?)\b[^>]*\/?>)|(?<=<\s?\/\s?)[A-Z](?=(.*?)\b[^>]*>))/g, (name) => `app-${name.toLowerCase()}`);
+    // .replace(/<\s?.*?\b[^>]*\/\s?>)/g, (name) => `app-${name.toLowerCase()}`)
     // 定义组件
     customElements.define(
-        name,
+        componentName,
         class extends HTMLElement {
             connectedCallback() {
                 // 代理数据
@@ -98,7 +103,7 @@ const createComponent = ({ name, html = '', data = () => {}, style = '' }) => {
                 data.call(mapIndex);
 
                 // 渲染节点
-                const newFragment = fragment.cloneNode(true);
+                const newFragment = document.createRange().createContextualFragment(filterHtml).childNodes[0];
                 new Render(newFragment, lsnrctlData);
 
                 // 替换节点
@@ -195,40 +200,117 @@ const store = ((storeData) => ({
 }))(Lsnrctl.getProxyData({}));
 
 // 定义app-router组件
-{
+const router = (() => {
+    /** 当前路由显示的节点标识 */
+    let currentRouterNodes = [];
+    /** 路由与节点的映射关系 */
     const hashEvents = {};
+    /** 路由路径 */
+    const path = Lsnrctl.getProxyData([]);
+    /** 路由显性参数 */
+    const query = Lsnrctl.getProxyData({});
+    /** 路由隐性参数 */
+    const params = Lsnrctl.getProxyData({});
+
+    // 初始话数据
+    {
+        /** 当前hash */
+        const hash = (location.href.match(/(?<=#\/).*?(?=(\?|$))/) || [''])[0];
+    
+        // 获取显性路由参数
+        const newQuery = (location.href.split('?')[1] || '').split('&').reduce((newQuery, paramStr) => {
+            const [key, value] = paramStr.split('=');
+            newQuery[key] = value;
+            return newQuery;
+        }, {});
+    
+        // 设置显性路由参数
+        Object.entries(newQuery).forEach(([key, value]) => {
+            query[key] = newQuery[key];
+        });
+    
+        // 设置路径参数
+        const newPath = hash.split('/');
+        path.push(...newPath);
+    }
 
     // 监听路由变化
     window.addEventListener('hashchange', (e) => {
-        const newHash = e.newURL.match(/#\/.*?(?=(\?|$))/g) ? e.newURL.match(/#\/.*?(?=(\?|$))/g)[0] : '';
-        const oldHash = e.oldURL.match(/#\/.*?(?=(\?|$))/g) ? e.oldURL.match(/#\/.*?(?=(\?|$))/g)[0] : '';
+        const newHash = `${(e.newURL.match(/(?<=#\/).*?(?=(\?|$))/) || [''])[0]}/`;
+        const oldHash = `${(e.oldURL.match(/(?<=#\/).*?(?=(\?|$))/) || [''])[0]}/`;
 
+        // 获取显性路由参数
+        const newQuery = (e.newURL.split('?')[1] || '').split('&').reduce((newQuery, paramStr) => {
+            const [key, value] = paramStr.split('=');
+            newQuery[key] = value;
+            return newQuery;
+        }, {});
+
+        // 更新显性路由参数
+        Object.entries(query).forEach(([key, value]) => {
+            if (!newQuery.hasOwnProperty(key)) {
+                delete query[key];
+            } else if (value !== newQuery[key]) {
+                query[key] = newQuery[key];
+            }
+        });
+        Object.entries(newQuery).forEach(([key, value]) => {
+            if (!query.hasOwnProperty(key)) {
+                query[key] = newQuery[key];
+            }
+        });
+
+        // 路由没有不处理
         if (newHash === oldHash) {
             return;
         }
 
-        // 移除旧的router组件
-        hashEvents.hasOwnProperty(oldHash) && hashEvents[oldHash].forEach(({ routerRoot }) => {
-            routerRoot.parentNode.removeChild(routerRoot);
+        // 更新路径
+        const newPath = newHash.split('/').slice(0, -1);
+        newPath && newPath.forEach((pt, index) => {
+            pt != path[index] && (path[index] = pt);
         })
+        path.length = newPath.length;
 
-        // 添加旧新router组件
-        hashEvents.hasOwnProperty(newHash) && hashEvents[newHash].forEach(({ routerAnchor, routerRoot }) => {
-            routerAnchor.parentNode.insertBefore(routerRoot, routerAnchor);
-        })
+        // 获取当前路由需要展示的节点
+        const newRouterNodes = Object.entries(hashEvents).reduce((newRouterNodes, [path, routerNodes]) => {
+            if (newHash.indexOf(path) == 0) {
+                newRouterNodes.push(...routerNodes);
+            }
+            return newRouterNodes;
+        }, []);
+
+        // 展示新的节点
+        newRouterNodes.forEach((routerNode) => {
+            if (!currentRouterNodes.includes(routerNode)) {
+                if (!routerNode.isRendered) {
+                    new Render(routerNode.routerRoot, routerNode.data);
+                    routerNode.isRendered = true;
+                }
+                routerNode.routerAnchor.parentNode.insertBefore(routerNode.routerRoot, routerNode.routerAnchor);
+            }
+        });
+
+        // 移除不在当前路由的节点
+        currentRouterNodes.forEach((routerNode) => {
+            if (!newRouterNodes.includes(routerNode)) {
+                routerNode.routerRoot.parentNode.removeChild(routerNode.routerRoot);
+            }
+        });
+
+        // 更新
+        currentRouterNodes = newRouterNodes;
     });
 
     // 定义router组件
     customElements.define(
         'app-router',
         class extends HTMLElement {
-            connectedCallback() {
-                // 获取hash
-                let hash = location.hash.match(/^#\/.*?(?=(\?|$))/g);
-                hash = hash ? hash[0] : '';
+            constructor() {
+                super();
 
                 // 获取path
-                const path = `#/${this.getAttribute('path')}` || '#/';
+                const path = `${this.getAttribute('path')}/` || '/';
                 this.removeAttribute('path');
 
                 // 创建锚点
@@ -242,20 +324,66 @@ const store = ((storeData) => ({
                 routerRoot.appendChild(fragment);
                 [...this.attributes].forEach(({ name, value }) => routerRoot.setAttribute(name, value));
 
-                // 判断当前路由
-                if (path === hash) {
-                    routerAnchor.parentNode.insertBefore(routerRoot, routerAnchor);
-                }
-
-                // 监听
-                hashEvents.hasOwnProperty(path) || (hashEvents[path] = []);
-                hashEvents[path].push({
+                // 节点标识
+                const routerNodes = {
                     routerAnchor,
                     routerRoot,
-                })
+                    data: dataMap.at(-1),
+                    isRendered: false,
+                };
+
+                // 判断当前路由
+                const route = `${(location.hash.match(/(?<=#\/).*?(?=(\?|$))/) || [''])[0]}/`;
+                if (route.indexOf(path) == 0) {
+                    routerAnchor.parentNode.insertBefore(routerRoot, routerAnchor);
+                    routerNodes.isRendered = true;
+                    currentRouterNodes.push(routerNodes);
+                }
+
+                // 添加到监听中
+                hashEvents.hasOwnProperty(path) || (hashEvents[path] = []);
+                hashEvents[path].push(routerNodes);
             }
         }
     );
-}
 
-export { render, createComponent, getData, getProps, bind, store };
+    /**
+     * @description: 跳转路由
+     * @author: 李永强
+     * @param {string} hash: 新的路由
+     * @param {object} query: 显性路由参数
+     * @param {object} params: 隐性路由参数
+     * @datetime: 2023-01-18 16:53:47
+     */
+    const to = ({ hash, query, params: newParams }) => {
+        const queryString = istype(query, 'Object')
+            ? `?${Object.entries(query)
+                  .map(([key, value]) => `${key}=${value}`)
+                  .join('&')}`
+            : '';
+        location.hash = `#/${hash}${queryString}`;
+
+        // 更新隐形路由参数
+        Object.entries(params).forEach(([key, value]) => {
+            if (!newParams.hasOwnProperty(key)) {
+                delete params[key];
+            } else if (value !== newParams[key]) {
+                params[key] = newParams[key];
+            }
+        });
+        Object.entries(newParams).forEach(([key, value]) => {
+            if (!params.hasOwnProperty(key)) {
+                params[key] = newParams[key];
+            }
+        });
+    };
+
+    return {
+        query,
+        params,
+        path,
+        to,
+    };
+})();
+
+export { render, createComponent, getData, getProps, bind, store, router };
