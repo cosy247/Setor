@@ -355,13 +355,13 @@ const router = (() => {
      * @param {object} params: 隐性路由参数
      * @datetime: 2023-01-18 16:53:47
      */
-    const to = ({ hash, query, params: newParams }) => {
+    const to = ({ path, query, params: newParams }) => {
         const queryString = istype(query, 'Object')
             ? `?${Object.entries(query)
                   .map(([key, value]) => `${key}=${value}`)
                   .join('&')}`
             : '';
-        location.hash = `#/${hash}${queryString}`;
+        location.hash = `#/${path}${queryString}`;
 
         // 更新隐形路由参数
         Object.entries(params).forEach(([key, value]) => {
