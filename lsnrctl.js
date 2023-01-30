@@ -72,6 +72,7 @@ const Lsnrctl = {
 
             // 设置属性并执行回调
             set: (target, key, newValue, receiver) => {
+                console.log(callbacks);
                 // 属性值没有改变时不处理（length作为数组长度时无法监听到是否改变，获取得总是最新的，需要特殊处理）
                 if (Reflect.get(target, key, receiver) === newValue && key !== 'length') return true;
                 // 设置属性值

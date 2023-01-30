@@ -21,6 +21,8 @@ export default class {
     /** 渲染数据 */
     data = {};
 
+    dataKeys = [];
+
     /** 是否已经渲染完成 */
     isRendered = false;
     /** 渲染完成回调函数集 */
@@ -29,10 +31,13 @@ export default class {
     /** for循环的数据 */
     forData = {};
 
+    /** if条件集合 */
     ifConditions = [];
+    /** 上一个if节点 */
     preIfElement = null;
 
-    putNodes = {};
+    /** 节点回调缓存 */
+    bufferCallbacks = new Set();
 
     /**
      * @description: 构造函数
@@ -44,6 +49,11 @@ export default class {
     constructor(root, data){
         this.root = root;
         this.data = data;
+
+        this.dataKeys = Object.keys(data);
+
+        // 加入$refs
+        this.data.$refs = {};
 
         // 在html文档加载完成后渲染
         if (window.document.readyState === 'loading'){
@@ -620,6 +630,8 @@ export default class {
                 breakRender = this.renderSpecialForElse(node, adorns);
             } else if (attrName === 'show'){
                 breakRender = this.renderSpecialForShow(node, valueString, adorns);
+            } else if (attrName === 'ref'){
+                breakRender = this.renderSpecialForRef(node, valueString, adorns);
             }
 
             if (breakRender) return true;
@@ -819,6 +831,17 @@ export default class {
         }, node);
     }
 
+    /**
+     * @description: 渲染-ref属性，将节点赋值给指定数据
+     * @author: 李永强
+     * @param {Element} node: 渲染的标签
+     * @param {string} valueString: 获取属性值的表达式
+     * @datetime: 2023-01-30 16:02:01
+     */
+    renderSpecialForRef(node, valueString) {
+        this.data.$refs[valueString] = node;
+    }
+
     // specialRetains
     renderRetains(node, retainAttrs){
         if (Object.prototype.toString.call(node.retainAttrs) !== '[object Object]'){
@@ -839,7 +862,18 @@ export default class {
      * @datetime: 2023-01-12 16:51:19
      */
     setLsnrctlCallback(callback, node) {
-        Lsnrctl.callback = () => document.contains(this.root) && callback();
+        Lsnrctl.callback = () => {
+            const { bufferCallbacks } = this;
+            if (document.contains(this.root)) {
+                if (bufferCallbacks.size) {
+                    bufferCallbacks.forEach((callback) => callback());
+                    bufferCallbacks.clear();
+                }
+                callback();
+            } else {
+                bufferCallbacks.add(callback);
+            }
+        }
         callback();
         Lsnrctl.callback = null;
     }
@@ -852,23 +886,7 @@ export default class {
      * @datetime: 2023-01-12 16:49:55
      */
     getValueFun(valueString) {
-        funDom.setAttribute('onclick', `return ({${Object.keys(this.data).join(',')}}, {${Object.keys(this.forData).join(',')}}) => ${valueString || 'undefined'}`);
+        funDom.setAttribute('onclick', `return ({${this.dataKeys.join(',')}}, {${Object.keys(this.forData).join(',')}}) => ${valueString || 'undefined'}`);
         return funDom.onclick().bind(window, this.data, this.forData);
-
-        // const { dataKeys,dataValues  } = this;
-        // const funProps = [...dataKeys, ...forKeys];
-        // funDom.setAttribute('onclick', `return ({${funProps.join(',')}}) => return ${valueString || 'undefined'}`);
-        // const valueFun = funDom.onclick();
-
-        // const valueFunBody = valueString.replaceAll('\n', '\\n') || undefined;
-        // const { dataKeys } = this;
-        // const { dataValues } = this;
-        // const forKeys = [...this.forKeys];
-        // const forValueFuns = [...this.forValues];
-        // return () => {
-        //     const funValues = [...dataValues, ...forValueFuns.map((value) => value())];
-        //     // eslint-disable-next-line no-new-func
-        //     return new Function(...funProps, `return (${valueFunBody})`)(...funValues);
-        // };
     }
 }

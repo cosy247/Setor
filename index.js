@@ -4,6 +4,13 @@ import uilt from './uilt';
 
 const { istype } = uilt;
 
+/** 样式添加结点 */
+const styleDom = document.createElement('style');
+document.head.appendChild(styleDom);
+
+/** 当前组件渲染的数据，用于router异步渲染 */
+let currentComponentData = null;
+
 /**
  * @description: 渲染根节点
  * @author: 李永强
@@ -29,9 +36,7 @@ const render = ({ root, component }) => {
         return;
     }
 
-    setTimeout(() => {
-        rootNode.innerHTML = `<${component}></${component}>`;
-    });
+    rootNode.appendChild(document.createElement(component));
 };
 
 /**
@@ -84,32 +89,24 @@ const createComponent = ({ name, html = '', data = () => {}, style = '' }) => {
         componentName,
         class extends HTMLElement {
             connectedCallback() {
-                // 代理数据
-                const allData = data();
-                if (!istype(allData, 'Object')) {
-                    return;
-                }
+                // 监听数据
+                const allData = Lsnrctl.getProxyData(data() || {});
+                currentComponentData = allData;
 
                 // 执行初始化函数
-                if (istype(allData.init, 'function')) {
-                    allData.init(this.retainAttrs || {});
+                if (istype(allData.$init, 'function')) {
+                    allData.$init(this.retainAttrs || {});
                 }
-
-                // 监听数据
-                Object.entries(allData).forEach(([key, value]) => {
-                    if (!istype(value, 'Function', 'Symbol')) {
-                        allData[key] = Lsnrctl.getProxyData(value);
-                    }
-                });
 
                 // 渲染节点
                 const newFragment = document.createRange().createContextualFragment(filterHtml).childNodes[0];
                 new Render(newFragment, allData);
+                currentComponentData = null;
 
                 // 执行渲染回调函数
-                if (istype(allData.rendered, 'function')) {
+                if (istype(allData.$rendered, 'function')) {
                     setTimeout(() => {
-                        allData.rendered();
+                        allData.$rendered();
                     });
                 }
 
@@ -135,14 +132,11 @@ const store = ((storeData) => ({
             return;
         }
 
-        if (Object.keys(storeData) !== 0) {
-            console.error(`storeData已被初始化`);
-            return;
-        }
-
         Object.entries(data).forEach(([key, value]) => {
             storeData[key] = value;
         });
+
+        delete this.init;
     },
 
     /**
@@ -186,7 +180,7 @@ const router = (() => {
     /** 路由隐性参数 */
     const params = Lsnrctl.getProxyData({});
 
-    // 初始化数据
+    // 初始话数据
     {
         /** 当前hash */
         const hash = (location.href.match(/(?<=#\/).*?(?=(\?|$))/) || [''])[0];
@@ -273,7 +267,7 @@ const router = (() => {
             }
         });
 
-        // 更新
+        // 更新当前路由显示的节点标识
         currentRouterNodes = newRouterNodes;
     });
 
@@ -303,7 +297,7 @@ const router = (() => {
                 const routerNodes = {
                     routerAnchor,
                     routerRoot,
-                    data: dataMap.at(-1),
+                    data: currentComponentData,
                     isRendered: false,
                 };
 
@@ -363,4 +357,4 @@ const router = (() => {
     };
 })();
 
-export { render, createComponent, getData, getProps, bind, store, router };
+export { render, createComponent, store, router };
