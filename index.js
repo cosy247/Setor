@@ -4,10 +4,6 @@ import uilt from './uilt';
 
 const { istype } = uilt;
 
-/** 样式添加结点 */
-const styleDom = document.createElement('style');
-document.head.appendChild(styleDom);
-
 /**
  * @description: 渲染根节点
  * @author: 李永强
@@ -16,7 +12,7 @@ document.head.appendChild(styleDom);
  * @param {undefined | string} object.style: 全局样式
  * @datetime: 2022-12-14 17:36:23
  */
-const render = ({ root, component, style }) => {
+const render = ({ root, component }) => {
     // 参数类型判断
     if (!istype(root, 'string')) {
         console.error('render的root参数应该存在并为string类型');
@@ -26,19 +22,11 @@ const render = ({ root, component, style }) => {
         console.error('render的component参数应该存在并为string类型');
         return;
     }
-    if (!istype(style, 'String', 'Undefined')) {
-        console.error('render的style参数存在时应为string类型');
-        return;
-    }
 
     const rootNode = document.querySelector(root);
     if (!rootNode) {
         console.error(`无法获取到元素: ${root}`);
         return;
-    }
-
-    if (style) {
-        styleDom.innerHTML += style.replace(/\s+/, ' ');
     }
 
     setTimeout(() => {
@@ -90,21 +78,40 @@ const createComponent = ({ name, html = '', data = () => {}, style = '' }) => {
         .trim()
         .replace(/((?<=<\s?)[A-Z](?=(.*?)\b[^>]*\/?>)|(?<=<\s?\/\s?)[A-Z](?=(.*?)\b[^>]*>))/g, (name) => `app-${name.toLowerCase()}`);
     // .replace(/<\s?.*?\b[^>]*\/\s?>)/g, (name) => `app-${name.toLowerCase()}`)
+
     // 定义组件
     customElements.define(
         componentName,
         class extends HTMLElement {
             connectedCallback() {
                 // 代理数据
-                const mapIndex = dataMap.length;
-                const lsnrctlData = {};
-                dataMap.push(lsnrctlData);
-                propsMap.push(this.retainAttrs || {});
-                data.call(mapIndex);
+                const allData = data();
+                if (!istype(allData, 'Object')) {
+                    return;
+                }
+
+                // 执行初始化函数
+                if (istype(allData.init, 'function')) {
+                    allData.init(this.retainAttrs || {});
+                }
+
+                // 监听数据
+                Object.entries(allData).forEach(([key, value]) => {
+                    if (!istype(value, 'Function', 'Symbol')) {
+                        allData[key] = Lsnrctl.getProxyData(value);
+                    }
+                });
 
                 // 渲染节点
                 const newFragment = document.createRange().createContextualFragment(filterHtml).childNodes[0];
-                new Render(newFragment, lsnrctlData);
+                new Render(newFragment, allData);
+
+                // 执行渲染回调函数
+                if (istype(allData.rendered, 'function')) {
+                    setTimeout(() => {
+                        allData.rendered();
+                    });
+                }
 
                 // 替换节点
                 this.parentNode.insertBefore(newFragment, this);
@@ -113,39 +120,6 @@ const createComponent = ({ name, html = '', data = () => {}, style = '' }) => {
         }
     );
 };
-
-/** 保存各个data的映射 */
-const dataMap = [];
-
-/**
- * @description: 获取组件渲染的data对象
- * @author: 李永强
- * @param {number} dataIndex: 映射下标，将以this传入组件函数中
- * @return {object}: 组件的渲染data
- * @datetime: 2023-01-13 11:17:37
- */
-const getData = (dataIndex) => dataMap[dataIndex];
-
-/** 保存各个props映射 */
-const propsMap = [];
-
-/**
- * @description: 获取组件渲的props对象
- * @author: 李永强
- * @param {number} propsIndex: 映射下标，将以this传入组件函数中
- * @return {object}: 组件的props
- * @datetime: 2023-01-13 11:24:25
- */
-const getProps = (propsIndex) => propsMap[propsIndex];
-
-/**
- * @description: 监听数据
- * @author: 李永强
- * @param {any} data: 需要监听的数据
- * @return {proxy}: 监听处理后的数据
- * @datetime: 2022-12-29 14:39:41
- */
-const bind = Lsnrctl.getProxyData;
 
 /** store接口对象 */
 const store = ((storeData) => ({
@@ -199,7 +173,7 @@ const store = ((storeData) => ({
     },
 }))(Lsnrctl.getProxyData({}));
 
-// 定义app-router组件
+/** router接口对象 */
 const router = (() => {
     /** 当前路由显示的节点标识 */
     let currentRouterNodes = [];
@@ -212,23 +186,23 @@ const router = (() => {
     /** 路由隐性参数 */
     const params = Lsnrctl.getProxyData({});
 
-    // 初始话数据
+    // 初始化数据
     {
         /** 当前hash */
         const hash = (location.href.match(/(?<=#\/).*?(?=(\?|$))/) || [''])[0];
-    
+
         // 获取显性路由参数
         const newQuery = (location.href.split('?')[1] || '').split('&').reduce((newQuery, paramStr) => {
             const [key, value] = paramStr.split('=');
             newQuery[key] = value;
             return newQuery;
         }, {});
-    
+
         // 设置显性路由参数
         Object.entries(newQuery).forEach(([key, value]) => {
             query[key] = newQuery[key];
         });
-    
+
         // 设置路径参数
         const newPath = hash.split('/');
         path.push(...newPath);
@@ -267,9 +241,10 @@ const router = (() => {
 
         // 更新路径
         const newPath = newHash.split('/').slice(0, -1);
-        newPath && newPath.forEach((pt, index) => {
-            pt != path[index] && (path[index] = pt);
-        })
+        newPath &&
+            newPath.forEach((pt, index) => {
+                pt != path[index] && (path[index] = pt);
+            });
         path.length = newPath.length;
 
         // 获取当前路由需要展示的节点
@@ -364,18 +339,20 @@ const router = (() => {
         location.hash = `#/${path}${queryString}`;
 
         // 更新隐形路由参数
-        Object.entries(params).forEach(([key, value]) => {
-            if (!newParams.hasOwnProperty(key)) {
-                delete params[key];
-            } else if (value !== newParams[key]) {
-                params[key] = newParams[key];
-            }
-        });
-        Object.entries(newParams).forEach(([key, value]) => {
-            if (!params.hasOwnProperty(key)) {
-                params[key] = newParams[key];
-            }
-        });
+        istype(params, 'Object') &&
+            Object.entries(params).forEach(([key, value]) => {
+                if (!newParams.hasOwnProperty(key)) {
+                    delete params[key];
+                } else if (value !== newParams[key]) {
+                    params[key] = newParams[key];
+                }
+            });
+        istype(newParams, 'Object') &&
+            Object.entries(newParams).forEach(([key, value]) => {
+                if (!params.hasOwnProperty(key)) {
+                    params[key] = newParams[key];
+                }
+            });
     };
 
     return {
