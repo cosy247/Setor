@@ -105,8 +105,14 @@ const createComponent = ({ name, html = '', data = () => {}, style = '' }) => {
 
                 // 执行渲染回调函数
                 if (istype(allData.rendered, 'function')) {
+                    // 获取refs并传入
+                    const refDoms = newFragment.querySelectorAll('[ref]');
+                    const refs = [...refDoms].reduce((refs, dom) => {
+                        refs[dom.getAttribute('ref')] = dom;
+                        return refs;
+                    }, {});
                     setTimeout(() => {
-                        allData.rendered();
+                        allData.rendered(refs);
                     });
                 }
 
@@ -357,8 +363,4 @@ const router = (() => {
     };
 })();
 
-const ref = (root, selector) => {
-    return root.querySelector(selector);
-}
-
-export { render, createComponent, store, router, ref };
+export { render, createComponent, store, router };

@@ -52,9 +52,6 @@ export default class {
 
         this.dataKeys = Object.keys(data);
 
-        // 加入refs
-        this.data.refs = {};
-
         // 在html文档加载完成后渲染
         if (window.document.readyState === 'loading'){
             document.addEventListener('DOMContentLoaded', () => {
@@ -392,8 +389,6 @@ export default class {
         // 加上事件，没有指定则使用默认事件
         node.addEventListener(type || model, () => {
             setValueFun && setValueFun();
-            // 如果为手动更新那么将调用更新
-            Lsnrctl.autoRefresh || Lsnrctl.refresh();
         });
     }
 
@@ -420,8 +415,6 @@ export default class {
             // 加上事件，没有指定则使用默认change事件
             node.addEventListener(type || 'change', () => {
                 setValueFun && setValueFun();
-                // 如果为手动更新那么将调用更新
-                Lsnrctl.autoRefresh || Lsnrctl.refresh();
             });
         }
     }
@@ -630,8 +623,6 @@ export default class {
                 breakRender = this.renderSpecialForElse(node, adorns);
             } else if (attrName === 'show'){
                 breakRender = this.renderSpecialForShow(node, valueString, adorns);
-            } else if (attrName === 'ref'){
-                breakRender = this.renderSpecialForRef(node, valueString, adorns);
             }
 
             if (breakRender) return true;
@@ -829,17 +820,6 @@ export default class {
                 node.style.display = 'none';
             }
         }, node);
-    }
-
-    /**
-     * @description: 渲染-ref属性，将节点赋值给指定数据
-     * @author: 李永强
-     * @param {Element} node: 渲染的标签
-     * @param {string} valueString: 获取属性值的表达式
-     * @datetime: 2023-01-30 16:02:01
-     */
-    renderSpecialForRef(node, valueString) {
-        this.data.refs[valueString] = node;
     }
 
     // specialRetains
