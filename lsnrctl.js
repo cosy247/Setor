@@ -20,11 +20,11 @@ const Lsnrctl = {
      * @description: 获取proxy代理的handler
      * @author: 李永强
      * @param {object} callbacks: 回调函数集
-     * data: {           callbacks : {
-     *   a: 1,             'a': [callbacks],
-     *   b: {              'b': [callbacks],
-     *     c: 2,           'b.c': [callbacks],
-     *     d: 3            'b.d': [callbacks]
+     * {                callbacks : {
+     *   a: 1,             'data.a': [callbacks],
+     *   b: {              'data.b': [callbacks],
+     *     c: 2,           'data.b.c': [callbacks],
+     *     d: 3            'data.b.d': [callbacks]
      *   }               }
      * }
      * @return {object}: proxy代理的handler
@@ -40,9 +40,11 @@ const Lsnrctl = {
                 if (typeof key !== 'symbol' && typeof value !== 'function' && Lsnrctl.callback) {
                     const allCallbackKey = `${callbackKey}.${key}`;
                     if (!callbacks[allCallbackKey]) {
-                        callbacks[allCallbackKey] = new Set();
+                        callbacks[allCallbackKey] = [];
                     }
-                    callbacks[allCallbackKey].add(Lsnrctl.callback);
+                    if (!callbacks[allCallbackKey].includes(Lsnrctl.callback)) {
+                        callbacks[allCallbackKey].push(Lsnrctl.callback);
+                    }
                 }
 
                 // recorderValue清空后记录一次，记录第一次使用到的值

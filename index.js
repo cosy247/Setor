@@ -109,6 +109,7 @@ const createComponent = ({ name, html = '', data = () => {}, style = '' }) => {
                     const refDoms = newFragment.querySelectorAll('[ref]');
                     const refs = [...refDoms].reduce((refs, dom) => {
                         refs[dom.getAttribute('ref')] = dom;
+                        dom.removeAttribute('ref');
                         return refs;
                     }, {});
                     setTimeout(() => {
