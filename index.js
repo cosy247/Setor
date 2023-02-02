@@ -94,8 +94,8 @@ const createComponent = ({ name, html = '', data = () => {}, style = '' }) => {
                 currentComponentData = allData;
 
                 // 执行初始化函数
-                if (istype(allData.$init, 'function')) {
-                    allData.$init(this.retainAttrs || {});
+                if (istype(allData.init, 'function')) {
+                    allData.init(this.retainAttrs || {});
                 }
 
                 // 渲染节点
@@ -104,9 +104,9 @@ const createComponent = ({ name, html = '', data = () => {}, style = '' }) => {
                 currentComponentData = null;
 
                 // 执行渲染回调函数
-                if (istype(allData.$rendered, 'function')) {
+                if (istype(allData.rendered, 'function')) {
                     setTimeout(() => {
-                        allData.$rendered();
+                        allData.rendered();
                     });
                 }
 
@@ -357,4 +357,8 @@ const router = (() => {
     };
 })();
 
-export { render, createComponent, store, router };
+const ref = (root, selector) => {
+    return root.querySelector(selector);
+}
+
+export { render, createComponent, store, router, ref };

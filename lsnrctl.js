@@ -34,8 +34,10 @@ const Lsnrctl = {
         return {
             // 获取属性时对属性和回调函数进行绑定
             get: (target, key, receiver) => {
+                let value = Reflect.get(target, key, receiver);
+
                 // 为数据绑定变化后的回调函数
-                if (typeof key !== 'symbol' && Lsnrctl.callback) {
+                if (typeof key !== 'symbol' && typeof value !== 'function' && Lsnrctl.callback) {
                     const allCallbackKey = `${callbackKey}.${key}`;
                     if (!callbacks[allCallbackKey]) {
                         callbacks[allCallbackKey] = new Set();
@@ -53,7 +55,6 @@ const Lsnrctl = {
                     });
 
                 // 获取value并处理（只处理对象自身的非symbol属性的对象值）
-                let value = Reflect.get(target, key, receiver);
                 if (typeof key !== 'symbol' && Object.hasOwn(target, key)) {
                     if (Object.prototype.toString.call(value) === '[object Object]' && !Object.hasOwn(value, Lsnrctl.proxySymbol)) {
                         // 渲染为proxy监听对象，添加symbol值作为标识

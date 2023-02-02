@@ -52,8 +52,8 @@ export default class {
 
         this.dataKeys = Object.keys(data);
 
-        // 加入$refs
-        this.data.$refs = {};
+        // 加入refs
+        this.data.refs = {};
 
         // 在html文档加载完成后渲染
         if (window.document.readyState === 'loading'){
@@ -839,7 +839,7 @@ export default class {
      * @datetime: 2023-01-30 16:02:01
      */
     renderSpecialForRef(node, valueString) {
-        this.data.$refs[valueString] = node;
+        this.data.refs[valueString] = node;
     }
 
     // specialRetains
