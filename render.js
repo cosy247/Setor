@@ -84,8 +84,14 @@ export default class {
 
         // 检查是否为忽略渲染的节点
         if (IGNORE_RENDER_NODE_NAMES.includes(nodeName)) return;
-
-        if (node.nodeName === '#text'){
+        
+        // 判断是否为组件
+        if (node.setorComponentAttributes) {
+            this.renderAttr(node, node.setorComponentAttributes);
+            delete node.setorComponentAttributes;
+            node.render();
+            delete node.render;
+        }else if (node.nodeName === '#text'){
             this.renderText(node);
         } else {
             // 渲染节点属性
@@ -150,27 +156,26 @@ export default class {
      * @param {Element} node: 渲染的节点
      * @datetime: 2022-12-09 18:11:33
      */
-    renderAttr(node){
+    renderAttr(node, attributes){
         const bindAttrs = {};
         const eventAttrs = {};
         const specialAttrs = {};
         const retainAttrs = {};
 
         // 对属性分类
-        node.attributes
-            && [...node.attributes].forEach((attr) => {
-                const [attrName, ...adorns] = attr.name.split('.');
-                if (attrName.length <= 1) return;
-                if (attrName[0] === ':'){
-                    bindAttrs[attr.name] = [attrName.slice(1), adorns, attr.value];
-                } else if (attrName[0] === '@'){
-                    eventAttrs[attr.name] = [attrName.slice(1), adorns, attr.value];
-                } else if (attrName[0] === '-'){
-                    specialAttrs[attr.name] = [attrName.slice(1), adorns, attr.value];
-                } else if (attrName[0] === '+'){
-                    retainAttrs[attr.name] = [attrName.slice(1), adorns, attr.value];
-                }
-            });
+        [...(attributes ? attributes : node.attributes)].forEach((attr) => {
+            const [attrName, ...adorns] = attr.name.split('.');
+            if (attrName.length <= 1) return;
+            if (attrName[0] === ':'){
+                bindAttrs[attr.name] = [attrName.slice(1), adorns, attr.value];
+            } else if (attrName[0] === '@'){
+                eventAttrs[attr.name] = [attrName.slice(1), adorns, attr.value];
+            } else if (attrName[0] === '-'){
+                specialAttrs[attr.name] = [attrName.slice(1), adorns, attr.value];
+            } else if (attrName[0] === '+'){
+                retainAttrs[attr.name] = [attrName.slice(1), adorns, attr.value];
+            }
+        });
 
         // 优先渲染特殊属性并判断是否需要继续渲染
         if (this.renderSpecials(node, specialAttrs)) return true;
@@ -261,6 +266,7 @@ export default class {
         // 保存标签的style属性
         const style = node.getAttribute('style') || '';
         const valueFun = this.getValueFun(valueString);
+
         this.setLsnrctlCallback(() => {
             let newStyle = style;
             const value = valueFun();
@@ -623,6 +629,8 @@ export default class {
                 breakRender = this.renderSpecialForElse(node, adorns);
             } else if (attrName === 'show'){
                 breakRender = this.renderSpecialForShow(node, valueString, adorns);
+            } else if (attrName === 'html'){
+                breakRender = this.renderSpecialForHTML(node, valueString, adorns);
             }
 
             if (breakRender) return true;
@@ -636,66 +644,50 @@ export default class {
      * @param {string} valueString: 获取属性值的表达式
      * @datetime: 2022-12-09 19:39:35
      */
-    renderSpecialForFor(node, valueString){
+    renderSpecialForFor(node, valueString) {
+        // 提起关键字
         const [vkString, forDataString] = valueString.split(' in ');
-        const [vString, kString] = vkString.split(',');
+        const [vString, kString = 'k'] = vkString.split(',');
 
+        // 数据获取函数
+        const getForDataFun = this.getValueFun(forDataString);
+        let forData;
+
+        // 创建锚点
         const forAnchor = document.createComment('render.for');
         node.parentNode.insertBefore(forAnchor, node);
         node.parentNode.removeChild(node);
-
-        const getForDataFun = this.getValueFun(forDataString);
+        
+        // 保存创建的节点
         const forNodes = [];
-        let forData;
+
+        // 数据和节点的映射关系
+        const dataToNodeMap = new Map();
 
         this.setLsnrctlCallback(() => {
+            // 获取数据
             forData = getForDataFun();
-            const isNumberFor = typeof forData === 'number';
-            const dataLength = isNumberFor ? forData : forData.length;
-
             Lsnrctl.callback = null;
-            if (dataLength > forNodes.length){
-                for (let index = forNodes.length; index < dataLength; index++){
-                    this.forKeys.push(vString);
-                    if (isNumberFor){
-                        this.forValues.push(() => index);
-                    } else if (typeof forData[index] == 'object'){
-                        // eslint-disable-next-line no-loop-func
-                        this.forValues.push(() => forData[index]);
-                    } else {
-                        // eslint-disable-next-line no-loop-func
-                        this.forValues.push(() => ({
-                            get value(){
-                                return forData[index];
-                            },
-                            set value(value){
-                                forData[index] = value;
-                            },
-                        }));
-                    }
-                    if (kString){
-                        this.forKeys.push(kString);
-                        this.forValues.push(() => index);
-                    }
 
+            // 遍历映射关系创建节点
+            forData.forEach((data, index) => {
+                const preV = this.forData[vString];
+                const preK = this.forData[kString];
+                this.forData[kString] = index;
+                this.forData[vString] = data;
+                if (dataToNodeMap.has(data)) {
+                    const node = dataToNodeMap.get(data);
+                } else {
                     const cloneNode = node.cloneNode(true);
-                    forNodes.push(cloneNode);
+                    dataToNodeMap.set(data, cloneNode);
                     forAnchor.parentNode.insertBefore(cloneNode, forAnchor);
                     this.renderNode(cloneNode);
-
-                    this.forKeys.pop();
-                    this.forValues.pop();
-                    if (kString){
-                        this.forKeys.pop();
-                        this.forValues.pop();
-                    }
                 }
-            } else if (dataLength < forNodes.length){
-                for (let index = dataLength; index < forNodes.length; index++){
-                    forNodes[index].parentNode.removeChild(forNodes[index]);
-                }
-                forNodes.length = dataLength;
-            }
+                setTimeout(() => {
+                    this.forData[vString] = preV;
+                    this.forData[kString] = preK;
+                });
+            })
         }, node);
         return true;
     }
@@ -822,14 +814,29 @@ export default class {
         }, node);
     }
 
+    /**
+     * @description: 渲染-html属性，数据将替换标签内部html
+     * @author: 李永强
+     * @param {Element} node: 渲染的标签
+     * @param {string} valueString: 获取属性值的表达式
+     * @datetime: 2023-02-03 11:12:24
+     */
+    renderSpecialForHTML(node, valueString){
+        const valueFun = this.getValueFun(valueString);
+        this.setLsnrctlCallback(() => {
+            node.innerHTML = valueFun();
+        }, node);
+    }
+
     // specialRetains
-    renderRetains(node, retainAttrs){
-        if (Object.prototype.toString.call(node.retainAttrs) !== '[object Object]'){
-            node.retainAttrs = {};
-        }
-        Object.entries(retainAttrs).forEach(([attrAllName, [attrName, adorns, valueString]]) => {
-            adorns;
-            node.retainAttrs[attrName] = this.getValueFun(valueString)();
+    renderRetains(node, retainAttrs) {
+        const retainEntries = Object.entries(retainAttrs);
+        if (retainEntries.length == 0) return;
+        
+        node.retainAttrs = {};
+        retainEntries.forEach(([attrAllName, [attrName, adorns, valueString]]) => {
+            const valueFun = this.getValueFun(valueString);
+            node.retainAttrs[attrName] = valueFun;
             node.removeAttribute(attrAllName);
         });
     }
@@ -866,7 +873,7 @@ export default class {
      * @datetime: 2023-01-12 16:49:55
      */
     getValueFun(valueString) {
-        funDom.setAttribute('onclick', `return ({${this.dataKeys.join(',')}}, {${Object.keys(this.forData).join(',')}}) => ${valueString || 'undefined'}`);
-        return funDom.onclick().bind(window, this.data, this.forData);
+        funDom.setAttribute('onclick', `return ({${this.dataKeys.join(',')}}, {${Object.keys(this.forData).join(',')}}) => (${valueString})`);
+        return funDom.onclick().bind(window, this.data, {...this.forData});
     }
 }

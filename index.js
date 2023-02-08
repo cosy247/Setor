@@ -36,7 +36,9 @@ const render = ({ root, component }) => {
         return;
     }
 
-    rootNode.appendChild(document.createElement(component));
+    const rootComponent = document.createElement(component);
+    rootNode.appendChild(rootComponent);
+    new Render(rootNode, {});
 };
 
 /**
@@ -81,45 +83,45 @@ const createComponent = ({ name, html = '', data = () => {}, style = '' }) => {
     // 处理组件标签重命名和自闭和标签
     const filterHtml = html
         .trim()
-        .replace(/((?<=<\s?)[A-Z](?=(.*?)\b[^>]*\/?>)|(?<=<\s?\/\s?)[A-Z](?=(.*?)\b[^>]*>))/g, (name) => `app-${name.toLowerCase()}`);
-    // .replace(/<\s?.*?\b[^>]*\/\s?>)/g, (name) => `app-${name.toLowerCase()}`)
+        .replace(/((?<=<\s?)[A-Z](?=(.*?)\b[^>]*\/?>)|(?<=<\s?\/\s?)[A-Z](?=(.*?)\b[^>]*>))/g, (name) => `app-${name.toLowerCase()}`)
+        // .replace(/<\s?[^\/]\s?(.*?)\b[^>]*>/g, (tagStart) => {
+        //     return tagStart.replace(/[a-zA-Z]*\s?=\s?('|").*?\1/g, (attr) => {
+        //         const [name, ...value] = attr.split('=');
+        //         return `${name.replace(/[A-Z]/g, (char) => `_${char.toUpperCase()}`)}=${value.join('=')}`;
+        //     });
+        // });
 
     // 定义组件
     customElements.define(
         componentName,
         class extends HTMLElement {
             connectedCallback() {
-                // 监听数据
-                const allData = Lsnrctl.getProxyData(data() || {});
-                currentComponentData = allData;
+                // 创建
+                const contentRoot = document.createRange().createContextualFragment(filterHtml).childNodes[0];
+                contentRoot.setorComponentAttributes = this.attributes;
+                contentRoot.render = () => {
+                    // 监听数据
+                    const preData = data() || {};
+                    const allData = Lsnrctl.getProxyData(
+                        istype(preData, 'function') ? preData(contentRoot.retainAttrs || {}) : istype(preData, 'object') ? preData : {}
+                    );
 
-                // 执行初始化函数
-                if (istype(allData.init, 'function')) {
-                    allData.init(this.retainAttrs || {});
-                }
+                    // 删除节点的props保留属性
+                    delete contentRoot.retainAttrs;
 
-                // 渲染节点
-                const newFragment = document.createRange().createContextualFragment(filterHtml).childNodes[0];
-                new Render(newFragment, allData);
-                currentComponentData = null;
-
-                // 执行渲染回调函数
-                if (istype(allData.rendered, 'function')) {
-                    // 获取refs并传入
-                    const refDoms = newFragment.querySelectorAll('[ref]');
-                    const refs = [...refDoms].reduce((refs, dom) => {
-                        refs[dom.getAttribute('ref')] = dom;
-                        dom.removeAttribute('ref');
-                        return refs;
-                    }, {});
-                    setTimeout(() => {
-                        allData.rendered(refs);
+                    // 函数this指向data
+                    Object.entries(allData).forEach(([key, value]) => {
+                        if (istype(value, 'function')) allData[key] = value.bind(allData);
                     });
+                    currentComponentData = allData;
+
+                    // 渲染节点
+                    new Render(contentRoot, allData);
+                    currentComponentData = null;
                 }
 
                 // 替换节点
-                this.parentNode.insertBefore(newFragment, this);
-                this.parentNode.removeChild(this);
+                this.parentNode.replaceChild(contentRoot, this);
             }
         }
     );
