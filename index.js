@@ -96,7 +96,7 @@ const createComponent = ({ name, html = '', data = () => {}, style = '' }) => {
         componentName,
         class extends HTMLElement {
             connectedCallback() {
-                // 创建
+                // 创建内容节点
                 const contentRoot = document.createRange().createContextualFragment(filterHtml).childNodes[0];
                 contentRoot.setorComponentAttributes = this.attributes;
                 contentRoot.render = () => {
