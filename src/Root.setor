@@ -1,0 +1,92 @@
+<Root:div class="root">
+    <h1 class="logo">{currentLogos}</h1>
+    <div class="line"></div>
+    <a href="link" class="title">title</a>
+    <button @clk="gotoRouter">goto router</button>
+    <Router path="router">
+        <p>{currentLogos}</p>
+        <Demo />
+    </Router>
+</Root:div>
+
+<script>
+    import { router } from 'setor';
+    import './components/Demo.setor';
+
+    const LOGOS = ['🥪', '🍧', '🍰', '🍟', '🌮', '🥠', '🍚', '🍜', '🍨', '🥧'];
+
+    return {
+        currentLogos: '🥪',
+
+        init(props) {
+            let logoIndex = 0;
+            setInterval(() => {
+                logoIndex++;
+                if (logoIndex >= LOGOS.length) {
+                    logoIndex = 0;
+                }
+                this.currentLogos = LOGOS[logoIndex];
+            }, 1000);
+        },
+
+        gotoRouter() {
+            router.to({ path: 'router' });
+        },
+    };
+</script>
+
+<style>
+    * {
+        padding: 0;
+        margin: 0;
+    }
+
+    body {
+        width: 100%;
+        height: 100vh;
+        display: flex;
+        justify-content: center;
+        background-color: #345;
+        align-items: center;
+    }
+
+    .root {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        flex-direction: column;
+    }
+
+    .logo {
+        position: relative;
+        font-size: 20vmin;
+        pointer-events: none;
+        user-select: none;
+    }
+
+    .line {
+        width: 0;
+        height: 1vmin;
+        border-right: 20vmin solid #0000;
+        border-left: 0vmin solid #789;
+        animation: line 3s linear infinite;
+    }
+
+    @keyframes line {
+        100% {
+            border-right: 0 solid #789;
+            border-left: 20vmin solid #0000;
+        }
+    }
+
+    .title {
+        color: #eee;
+        font-size: 5vmin;
+        text-decoration: none;
+        transition: letter-spacing 0.5s;
+    }
+
+    .title:hover {
+        letter-spacing: 0.05em;
+    }
+</style>

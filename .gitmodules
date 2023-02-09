@@ -1,0 +1,3 @@
+[submodule "setor"]
+	path = setor
+	url = https://github.com/cosy247/setor.git
