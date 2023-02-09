@@ -5,12 +5,9 @@
         "build": "webpack --config ./config/webpack.prod.js"
     },
     "devDependencies": {
-        "eslint": "^8.28.0",
         "webpack-dev-server": "^4.11.1"
     },
     "dependencies": {
-        "babel-loader": "^9.1.0",
-        "css-loader": "^6.7.2",
         "html-loader": "^4.2.0",
         "html-webpack-plugin": "^5.5.0",
         "node-polyfill-webpack-plugin": "^2.0.1",

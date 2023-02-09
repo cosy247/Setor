@@ -22,23 +22,18 @@ module.exports = {
                 test: /\.html$/,
                 use: ['html-loader'],
             },
-            {
-                test: /\.js$/,
-                exclude: /node_modules/,
-                loader: 'babel-loader',
-            },
         ],
     },
     plugins: [
         new HtmlWebpackPlugin({
-            template: './public/index.html',
+            template: './docs/index.html',
         }),
     ],
     devServer: {
         host: 'localhost',
         port: '7000',
         open: true,
-        watchFiles: ['./src', './public'],
+        watchFiles: ['./src', './docs'],
     },
     mode: 'development',
 };
