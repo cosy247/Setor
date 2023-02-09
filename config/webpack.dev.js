@@ -26,14 +26,14 @@ module.exports = {
     },
     plugins: [
         new HtmlWebpackPlugin({
-            template: './docs/index.html',
+            template: './public/index.html',
         }),
     ],
     devServer: {
         host: 'localhost',
         port: '7000',
         open: true,
-        watchFiles: ['./src', './docs'],
+        watchFiles: ['./src', './public'],
     },
     mode: 'development',
 };

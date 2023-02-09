@@ -4,7 +4,7 @@ const { resolve } = require('path');
 module.exports = {
     entry: './src/index.js',
     output: {
-        path: resolve('build'),
+        path: resolve('docs'),
         filename: './js/index.js',
         clean: true,
     },
@@ -31,7 +31,7 @@ module.exports = {
     },
     plugins: [
         new HtmlWebpackPlugin({
-            template: './docs/index.html',
+            template: './public/index.html',
         }),
     ],
     mode: 'production',
