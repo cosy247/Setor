@@ -1,37 +1,15 @@
 <Root:div class="root">
-    <h1 class="logo">{currentLogos}</h1>
-    <div class="line"></div>
-    <a href="link" class="title">title</a>
-    <button @clk="gotoRouter">goto router</button>
-    <Router path="router">
-        <p>{currentLogos}</p>
-        <Demo />
-    </Router>
+    <div -for="c in components" -html="c.name"></div>
 </Root:div>
 
 <script>
     import { router } from 'setor';
-    import './components/Demo.setor';
+    import './components/SessSwitch.setor';
 
     const LOGOS = ['🥪', '🍧', '🍰', '🍟', '🌮', '🥠', '🍚', '🍜', '🍨', '🥧'];
 
     return {
-        currentLogos: '🥪',
-
-        init(props) {
-            let logoIndex = 0;
-            setInterval(() => {
-                logoIndex++;
-                if (logoIndex >= LOGOS.length) {
-                    logoIndex = 0;
-                }
-                this.currentLogos = LOGOS[logoIndex];
-            }, 1000);
-        },
-
-        gotoRouter() {
-            router.to({ path: 'router' });
-        },
+        components: [{ name: '<app-switch></app-switch>' }],
     };
 </script>
 
