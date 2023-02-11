@@ -1,17 +1,24 @@
-<Switch class="sess-switch" :class="{checked: checked}" @clk="change">
+<Switch class="sess-switch" :class="{checked: checked}" @clk="changeHandle">
     <div class="sess-switch-circle"></div>
-    <span class="sess-switch-open">open</span>
-    <span class="sess-switch-close">close</span>
+    <span class="sess-switch-open">{openText}</span>
+    <span class="sess-switch-close">{closeText}</span>
 </Switch>
 
 <script>
-    return () => ({
-        checked: false,
+    return ({ value, onchange, openText, closeText }) => {
+        console.log(openText, closeText);
+        return {
+            checked: value,
+            onchange: typeof onchange == 'function' && onchange,
+            openText: openText,
+            closeText: closeText,
 
-        change() {
-            this.checked = !this.checked;
-        }
-    })
+            changeHandle() {
+                this.checked = !this.checked;
+                this.onchange && this.onchange(this.checked);
+            },
+        };
+    };
 </script>
 
 <style>
@@ -21,15 +28,17 @@
         font-size: 1em;
         width: fit-content;
         height: 1.5em;
+        min-width: 3em;
         border-radius: 1em;
         background-color: #aaa;
-        transition: background 0.3s;
+        transition: background 0.5s;
         cursor: pointer;
+        overflow: hidden;
         box-shadow: 0 0 0 0em #1677ff;
     }
 
     .sess-switch.checked {
-        transition: 0.3s;
+        transition: 0.5s;
         background-color: #1677ff;
         box-shadow: 0 0 0 0.5em #1677ff00;
     }
@@ -41,31 +50,41 @@
         width: 1.2em;
         height: 1.2em;
         border-radius: 50%;
-        background-color: #fff;
-        transition: 0.3s;
+        background-color: #eee;
+        transition: 0.5s;
     }
 
-    .sess-switch.checked
-    .sess-switch-circle {
+    .sess-switch.checked .sess-switch-circle {
         left: calc(100% - 1.35em);
     }
 
     .sess-switch-open,
     .sess-switch-close {
+        color: #fff;
         display: block;
-        padding: 0 0.3em;
         text-align: center;
+        line-height: 1.5em;
         transition: 0.5s;
+        user-select: none;
     }
 
-    .sess-switch.checked
     .sess-switch-open {
-        transform: translateX(-100%);
+        padding-right: 1.5em;
+        padding-left: 0.5em;
+        transform: translateX(calc(1.5em - 100%));
+    }
+
+    .sess-switch.checked .sess-switch-open {
+        transform: translateX(0%);
     }
 
     .sess-switch-close {
-        margin-top: -1.2em;
-        transform: translateX(100%);
+        padding-right: 0.5em;
+        padding-left: 1.5em;
+        margin-top: -1.5em;
     }
 
+    .sess-switch.checked .sess-switch-close {
+        transform: translateX(calc(100% - 1.5em));
+    }
 </style>

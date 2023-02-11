@@ -1,16 +1,11 @@
 <Root:div class="root">
-    <div -for="c in components" -html="c.name"></div>
+    <Switch +value="true" +onchange="(e) => console.log(e)"></Switch>
+    <Switch +openText="YES" +closeText="NO"></Switch>
 </Root:div>
 
 <script>
     import { router } from 'setor';
     import './components/SessSwitch.setor';
-
-    const LOGOS = ['🥪', '🍧', '🍰', '🍟', '🌮', '🥠', '🍚', '🍜', '🍨', '🥧'];
-
-    return {
-        components: [{ name: '<app-switch></app-switch>' }],
-    };
 </script>
 
 <style>
