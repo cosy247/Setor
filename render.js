@@ -832,11 +832,12 @@ export default class {
     renderRetains(node, retainAttrs) {
         const retainEntries = Object.entries(retainAttrs);
         if (retainEntries.length == 0) return;
-        
         node.retainAttrs = {};
         retainEntries.forEach(([attrAllName, [attrName, adorns, valueString]]) => {
             const valueFun = this.getValueFun(valueString);
-            node.retainAttrs[attrName] = valueFun;
+            Object.defineProperty(node.retainAttrs, attrName, {
+                get: valueFun
+            });
             node.removeAttribute(attrAllName);
         });
     }

@@ -103,7 +103,7 @@ const createComponent = ({ name, html = '', data = () => {}, style = '' }) => {
                     // 监听数据
                     const preData = data() || {};
                     const allData = Lsnrctl.getProxyData(
-                        istype(preData, 'function') ? preData(contentRoot.retainAttrs || {}) : istype(preData, 'object') ? preData : {}
+                        istype(preData, 'function') ? preData(contentRoot.retainAttrs || {}) : (istype(preData, 'object') ? preData : {})
                     );
 
                     // 删除节点的props保留属性
