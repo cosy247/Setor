@@ -1,6 +1,6 @@
 <Root:div class="root">
     <Switch +value="true" +onchange="(e) => console.log(e)"></Switch>
-    <Switch +openText="YES" +closeText="NO"></Switch>
+    <Switch +openText="`YES`" +closeText="`NO`"></Switch>
 </Root:div>
 
 <script>
