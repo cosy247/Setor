@@ -4,7 +4,7 @@
     <Switch +openText="`YES`" +closeText="`NO`"></Switch>
 
     <p>[ Messge ]</p>
-    <button @clk="messge.info">info</button>
+    <button>info</button>
 </Root:div>
 
 <script>
