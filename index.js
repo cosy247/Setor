@@ -84,12 +84,12 @@ const createComponent = ({ name, html = '', data = () => {}, style = '' }) => {
     const filterHtml = html
         .trim()
         .replace(/((?<=<\s?)[A-Z](?=(.*?)\b[^>]*\/?>)|(?<=<\s?\/\s?)[A-Z](?=(.*?)\b[^>]*>))/g, (name) => `app-${name.toLowerCase()}`)
-        // .replace(/<\s?[^\/]\s?(.*?)\b[^>]*>/g, (tagStart) => {
-        //     return tagStart.replace(/[a-zA-Z]*\s?=\s?('|").*?\1/g, (attr) => {
-        //         const [name, ...value] = attr.split('=');
-        //         return `${name.replace(/[A-Z]/g, (char) => `_${char.toUpperCase()}`)}=${value.join('=')}`;
-        //     });
-        // });
+        .replace(/<\s?[^\/]\s?(.*?)\b[^>]*>/g, (tagStart) => {
+            return tagStart.replace(/[a-zA-Z]*\s?=\s?('|").*?\1/g, (attr) => {
+                const [name, ...value] = attr.split('=');
+                return `${name.replace(/[A-Z]/g, (char) => `_${char.toUpperCase()}`)}=${value.join('=')}`;
+            });
+        });
 
     // 定义组件
     customElements.define(
