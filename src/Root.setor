@@ -1,11 +1,16 @@
 <Root:div class="root">
+    <p>[ Switch ]</p>
     <Switch +value="true" +onchange="(e) => console.log(e)"></Switch>
     <Switch +openText="`YES`" +closeText="`NO`"></Switch>
+
+    <p>[ Messge ]</p>
+    <button @clk="messge.info">info</button>
 </Root:div>
 
 <script>
     import { router } from 'setor';
     import './components/SessSwitch.setor';
+    import './components/SessMessage.setor'
 </script>
 
 <style>
@@ -30,36 +35,11 @@
         flex-direction: column;
     }
 
-    .logo {
-        position: relative;
-        font-size: 20vmin;
-        pointer-events: none;
-        user-select: none;
+    .root > *{
+        margin: 5px 0;
     }
 
-    .line {
-        width: 0;
-        height: 1vmin;
-        border-right: 20vmin solid #0000;
-        border-left: 0vmin solid #789;
-        animation: line 3s linear infinite;
-    }
-
-    @keyframes line {
-        100% {
-            border-right: 0 solid #789;
-            border-left: 20vmin solid #0000;
-        }
-    }
-
-    .title {
-        color: #eee;
-        font-size: 5vmin;
-        text-decoration: none;
-        transition: letter-spacing 0.5s;
-    }
-
-    .title:hover {
-        letter-spacing: 0.05em;
+    .root >p {
+        color: #48a;
     }
 </style>

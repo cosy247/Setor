@@ -1,0 +1,15 @@
+<SessMessage class="sess-message">
+    
+</SessMessage>
+
+<script>
+    return () => ({
+
+    })
+</script>
+
+<style>
+    .sess-message {
+        
+    }
+</style>

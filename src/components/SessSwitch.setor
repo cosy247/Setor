@@ -1,17 +1,16 @@
 <Switch class="sess-switch" :class="{checked: checked}" @clk="changeHandle">
     <div class="sess-switch-circle"></div>
-    <span class="sess-switch-open">{opentext}</span>
-    <span class="sess-switch-close">{closetext}</span>
+    <span class="sess-switch-open">{openText}</span>
+    <span class="sess-switch-close">{closeText}</span>
 </Switch>
 
 <script>
-    return ({ value, onchange, opentext, closetext }) => {
-        console.log(opentext, closetext);
+    return ({ value, onchange, openText, closeText }) => {
         return {
             checked: value,
             onchange: typeof onchange == 'function' && onchange,
-            opentext: opentext,
-            closetext: closetext,
+            openText: openText,
+            closeText: closeText,
 
             changeHandle() {
                 this.checked = !this.checked;
