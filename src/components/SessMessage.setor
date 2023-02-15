@@ -3,9 +3,12 @@
 </SessMessage>
 
 <script>
-    return () => ({
 
-    })
+    this.props;
+
+    return {
+
+    }
 </script>
 
 <style>

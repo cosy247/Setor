@@ -5,18 +5,18 @@
 </Switch>
 
 <script>
-    return ({ value, onchange, openText, closeText }) => {
-        return {
-            checked: value,
-            onchange: typeof onchange == 'function' && onchange,
-            openText: openText,
-            closeText: closeText,
+    const { value, onchange, openText, closeText } = this.props;
 
-            changeHandle() {
-                this.checked = !this.checked;
-                this.onchange && this.onchange(this.checked);
-            },
-        };
+    return {
+        checked: value,
+        onchange: typeof onchange == 'function' && onchange,
+        openText: openText,
+        closeText: closeText,
+
+        changeHandle() {
+            this.checked = !this.checked;
+            this.onchange && this.onchange(this.checked);
+        },
     };
 </script>
 
