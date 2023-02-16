@@ -834,10 +834,14 @@ export default class {
         if (retainEntries.length == 0) return;
         node.retainAttrs = {};
         retainEntries.forEach(([attrAllName, [attrName, adorns, valueString]]) => {
-            const valueFun = this.getValueFun(valueString);
-            Object.defineProperty(node.retainAttrs, attrName, {
-                get: valueFun
-            });
+            const realAttrName = attrName.replace(/_[a-z]/g, c => c.slice(1).toUpperCase());
+            if (realAttrName[0] === ':') {
+                Object.defineProperty(node.retainAttrs, realAttrName.slice(1), {
+                    get: this.getValueFun(valueString)
+                });
+            } else {
+                node.retainAttrs[realAttrName] = valueString;
+            }
             node.removeAttribute(attrAllName);
         });
     }
