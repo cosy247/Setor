@@ -1,7 +1,7 @@
 <Root:div class="root">
     <p>[ Switch ]</p>
-    <Switch +value="true" +onchange="(e) => console.log(e)"></Switch>
-    <Switch +openText="`YES`" +closeText="`NO`"></Switch>
+    <Switch +:value="true" +:onchange="(e) => console.log(e)"></Switch>
+    <Switch +openText="YES" +closeText="NO"></Switch>
 
     <p>[ Messge ]</p>
     <button>info</button>
