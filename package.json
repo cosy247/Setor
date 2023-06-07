@@ -1,9 +1,11 @@
 {
-  "name": "setor",
-  "version": "0.0.1",
-  "description": "setor",
-  "main": "index.js",
-  "author": "cosy247",
-  "license": "ISC",
-  "files": ["./index.js"]
+    "name": "setor",
+    "version": "0.0.1",
+    "description": "setor",
+    "main": "index.js",
+    "author": "cosy247",
+    "license": "ISC",
+    "files": [
+        "./index.js"
+    ]
 }

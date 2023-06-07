@@ -13,13 +13,12 @@ let currentComponentData = null;
 
 /**
  * @description: 渲染根节点
- * @author: 李永强
  * @param {string} object.root: 根节点选择器
  * @param {string} object.component: 根节点挂载的组件名
  * @param {undefined | string} object.style: 全局样式
  * @datetime: 2022-12-14 17:36:23
  */
-const render = ({ root, component }) => {
+const createApp = ({ root, component }) => {
     // 参数类型判断
     if (!istype(root, 'string')) {
         console.error('render的root参数应该存在并为string类型');
@@ -102,9 +101,7 @@ const createComponent = ({ name, html = '', data = () => {}, style = '' }) => {
                 contentRoot.render = () => {
                     // 监听数据
                     const preData = data() || {};
-                    const allData = Lsnrctl.getProxyData(
-                        istype(preData, 'function') ? preData(contentRoot.retainAttrs || {}) : (istype(preData, 'object') ? preData : {})
-                    );
+                    const allData = Lsnrctl.getProxyData(istype(preData, 'function') ? preData(contentRoot.retainAttrs || {}) : istype(preData, 'object') ? preData : {});
 
                     // 删除节点的props保留属性
                     delete contentRoot.retainAttrs;
@@ -118,7 +115,7 @@ const createComponent = ({ name, html = '', data = () => {}, style = '' }) => {
                     // 渲染节点
                     new Render(contentRoot, allData);
                     currentComponentData = null;
-                }
+                };
 
                 // 替换节点
                 this.parentNode.replaceChild(contentRoot, this);
@@ -366,4 +363,4 @@ const router = (() => {
     };
 })();
 
-export { render, createComponent, store, router };
+export { createApp, createComponent, store, router };
