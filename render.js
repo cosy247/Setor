@@ -11,17 +11,13 @@ const funDom = document.createElement('div');
 
 /**
  * @description: 元素数据渲染
- * @author: 李永强
- * @datetime: 2022-12-06 13:03:58
  */
 export default class {
     /** 渲染的根元素 */
     root = null;
 
-    /** 渲染数据 */
-    data = {};
-
-    dataKeys = [];
+    /** 数据获取 */
+    getValueFun = null;
 
     /** 是否已经渲染完成 */
     isRendered = false;
@@ -41,16 +37,12 @@ export default class {
 
     /**
      * @description: 构造函数
-     * @author: 李永强
      * @param {Element} root: 渲染的根节点
      * @param {Object} data: 渲染时使用的数据
-     * @datetime: 2022-12-06 13:09:35
      */
-    constructor(root, data){
+    constructor(root, getValueFun){
         this.root = root;
-        this.data = data;
-
-        this.dataKeys = Object.keys(data);
+        this.getValueFun = getValueFun;
 
         // 在html文档加载完成后渲染
         if (window.document.readyState === 'loading'){
@@ -64,8 +56,6 @@ export default class {
 
     /**
      * @description: 渲染根节点，执行回调函数
-     * @author: 李永强
-     * @datetime: 2022-12-06 18:01:48
      */
     renderRoot(){
         this.renderNode(this.root);
@@ -75,9 +65,7 @@ export default class {
 
     /**
      * @description: 渲染节点和子代节点(普通节点和文本节点分类渲染)
-     * @author: 李永强
      * @param {Node} node: 渲染的节点
-     * @datetime: 2022-12-06 18:02:35
      */
     renderNode(node){
         const { nodeName } = node;
@@ -86,12 +74,7 @@ export default class {
         if (IGNORE_RENDER_NODE_NAMES.includes(nodeName)) return;
         
         // 判断是否为组件
-        if (node.setorComponentAttributes) {
-            this.renderAttr(node, node.setorComponentAttributes);
-            delete node.setorComponentAttributes;
-            node.render();
-            delete node.render;
-        }else if (node.nodeName === '#text'){
+        if (node.nodeName === '#text'){
             this.renderText(node);
         } else {
             // 渲染节点属性
@@ -107,33 +90,29 @@ export default class {
 
     /**
      * @description: 分割文本节点分别渲染
-     * @author: 李永强
      * @param {TextNode} node: 文本节点
-     * @datetime: 2022-12-06 18:05:57
      */
     renderText(node){
         let match;
         let textNode = node;
-        while ((match = textNode.data.match(/\{.*?\}/)) !== null){
+        while ((match = textNode.data.match(/\{\{.*?\}\}/)) !== null){
             if (match.index !== 0){
                 textNode = textNode.splitText(match.index);
             }
             const newNode = textNode.splitText(match[0].length);
-            this.renderTextCotnt(textNode, textNode.data.slice(1, -1));
+            this.renderTextContent(textNode, textNode.data.slice(2, -2));
             textNode = newNode;
         }
     }
 
     /**
      * @description: 将文本内容与数据进行绑定
-     * @author: 李永强
      * @param {TextNode} node: 文本节点
      * @param {valueString} string: 获取属性值的执行代码
-     * @datetime: 2022-12-06 18:06:58
      */
-    renderTextCotnt(node, valueString){
-        // 获取属性值函数
+    renderTextContent(node, valueString){
         const valueFun = this.getValueFun(valueString);
+
         // 绑定数据
         this.setLsnrctlCallback(() => {
             const value = valueFun();
@@ -152,9 +131,7 @@ export default class {
 
     /**
      * @description: 渲染节点的属性入口函数
-     * @author: 李永强
      * @param {Element} node: 渲染的节点
-     * @datetime: 2022-12-09 18:11:33
      */
     renderAttr(node, attributes){
         const bindAttrs = {};
@@ -186,10 +163,8 @@ export default class {
 
     /**
      * @description: 绑定属性渲染入口
-     * @author: 李永强
      * @param {Element} node: 渲染的标签
      * @param {Object} bindAttrs: 所有的绑定属性原数据
-     * @datetime: 2022-12-09 18:13:31
      */
     renderBinds(node, bindAttrs){
         Object.entries(bindAttrs).forEach(([attrAllName, [attrName, adorns, valueString]]) => {
@@ -209,11 +184,9 @@ export default class {
 
     /**
      * @description: 渲染普通绑定属性
-     * @author: 李永强
      * @param {Element} node: 渲染的标签
      * @param {string} attrName: 属性名
      * @param {string} valueString: 获取属性值的表达式
-     * @datetime: 2022-12-09 18:16:30
      */
     renderBindForNormal(node, attrName, valueString){
         const valueFun = this.getValueFun(valueString);
@@ -231,10 +204,8 @@ export default class {
 
     /**
      * @description: 渲染绑定的class属性
-     * @author: 李永强
      * @param {Element} node: 渲染的标签
      * @param {string} valueString: 获取属性值的表达式
-     * @datetime: 2022-12-09 18:18:19
      */
     renderBindForClass(node, valueString){
         // 保存标签的class属性
@@ -257,10 +228,8 @@ export default class {
 
     /**
      * @description: 渲染绑定的style属性
-     * @author: 李永强
      * @param {Element} node: 渲染的标签
      * @param {string} valueString: 获取属性值的表达式
-     * @datetime: 2022-12-09 18:19:14
      */
     renderBindForStyle(node, valueString){
         // 保存标签的style属性
@@ -293,11 +262,9 @@ export default class {
 
     /**
      * @description: 渲染双向绑定入口
-     * @author: 李永强
      * @param {Element} node: 渲染的标签
      * @param {string} type: 事件名
      * @param {string} valueString: 获取属性值的表达式
-     * @datetime: 2022-12-09 18:24:58
      */
     renderBindForMutual(node, type, valueString){
         const tagName = node.tagName.toUpperCase();
@@ -310,11 +277,9 @@ export default class {
 
     /**
      * @description: 渲染input标签的双向绑定属性
-     * @author: 李永强
      * @param {Element} node: 渲染的标签
      * @param {string} type: 事件名
      * @param {string} valueString: 获取属性值的表达式
-     * @datetime: 2022-12-09 18:30:18
      */
     renderBindForMutualOfInput(node, type, valueString){
         const valueFun = this.getValueFun(valueString);
@@ -400,11 +365,9 @@ export default class {
 
     /**
      * @description: 渲染select标签的双向绑定属性
-     * @author: 李永强
      * @param {Element} node: 渲染的标签
      * @param {string} type: 事件名
      * @param {string} valueString: 获取属性值的表达式
-     * @datetime: 2022-12-09 19:04:09
      */
     renderBindForMutualOfSelect(node, type, valueString){
         const valueFun = this.getValueFun(valueString);
@@ -427,10 +390,8 @@ export default class {
 
     /**
      * @description: 事件绑定入口函数
-     * @author: 李永强
      * @param {Element} node: 渲染的标签
      * @param {Object} eventAttrs: 所有的事件绑定原数据
-     * @datetime: 2022-12-09 19:04:41
      */
     renderEvents(node, eventAttrs){
         Object.entries(eventAttrs).forEach(([attrAllName, [eventType, adorns, valueString]]) => {
@@ -454,11 +415,9 @@ export default class {
 
     /**
      * @description: 按下事件，pc端为鼠标按下，移动端为手指按下
-     * @author: 李永强
      * @param {Element} node: 渲染的标签
      * @param {string} valueString: 获取属性值的表达式
      * @param {Array} adorns: 获取属性值的表达式
-     * @datetime: 2022-12-09 19:06:59
      */
     renderEventForDown(node, valueString, adorns){
         if (IS_MOBILE){
@@ -470,11 +429,9 @@ export default class {
 
     /**
      * @description: 松开事件，pc端为鼠标键抬起，移动端为手指抬起
-     * @author: 李永强
      * @param {Element} node: 渲染的标签
      * @param {string} valueString: 获取属性值的表达式
      * @param {Array} adorns: 获取属性值的表达式
-     * @datetime: 2022-12-09 19:09:32
      */
     renderEventForUp(node, valueString, adorns){
         if (IS_MOBILE){
@@ -486,11 +443,9 @@ export default class {
 
     /**
      * @description: 点击事件，pc端为鼠标点击，移动端为手指按下不移动并在150ms内抬起
-     * @author: 李永强
      * @param {Element} node: 渲染的标签
      * @param {string} valueString: 获取属性值的表达式
      * @param {Array} adorns: 获取属性值的表达式
-     * @datetime: 2022-12-09 19:09:45
      */
     renderEventForClk(node, valueString, adorns){
         if (IS_MOBILE){
@@ -514,11 +469,9 @@ export default class {
 
     /**
      * @description: 双击事件，pc端为鼠标双击，移动端为手指按下不移动并在500ms内抬起
-     * @author: 李永强
      * @param {Element} node: 渲染的标签
      * @param {string} valueString: 获取属性值的表达式
      * @param {Array} adorns: 获取属性值的表达式
-     * @datetime: 2022-12-09 19:12:45
      */
     renderEventForDbclk(node, valueString, adorns){
         if (IS_MOBILE){
@@ -554,11 +507,9 @@ export default class {
 
     /**
      * @description: 移动事件，pc端为鼠标移动，移动端为手指触摸移动
-     * @author: 李永强
      * @param {Element} node: 渲染的标签
      * @param {string} valueString: 获取属性值的表达式
      * @param {Array} adorns: 获取属性值的表达式
-     * @datetime: 2022-12-09 19:12:45
      */
     renderEventForMove(node, valueString, adorns){
         if (IS_MOBILE){
@@ -595,11 +546,9 @@ export default class {
 
     /**
      * @description: 移动事件，pc端为鼠标移动，移动端为手指触摸移动
-     * @author: 李永强
      * @param {Element} node: 渲染的标签
      * @param {string} eventType: 事件类型
      * @param {string} valueString: 获取属性值的表达式
-     * @datetime: 2022-12-09 19:32:18
      */
     renderEventForNormal(node, eventType, valueString){
         const valueFun = this.getValueFun(valueString)();
@@ -608,10 +557,8 @@ export default class {
 
     /**
      * @description: 特殊属性绑定入口函数
-     * @author: 李永强
      * @param {Element} node: 渲染的标签
      * @param {Object} specialAttrs: 所有的特色属性原数据
-     * @datetime: 2022-12-09 19:34:12
      */
     renderSpecials(node, specialAttrs){
         Object.entries(specialAttrs).forEach(([attrAllName, [attrName, adorns, valueString]]) => {
@@ -639,10 +586,8 @@ export default class {
 
     /**
      * @description: 渲染for属性（循环属性：-for="v,k in data"）可以省略k值
-     * @author: 李永强
      * @param {Element} node: 渲染的标签
      * @param {string} valueString: 获取属性值的表达式
-     * @datetime: 2022-12-09 19:39:35
      */
     renderSpecialForFor(node, valueString) {
         // 提起关键字
@@ -694,10 +639,8 @@ export default class {
 
     /**
      * @description: 渲染-if属性，当表达式值为真时渲染
-     * @author: 李永强
      * @param {Element} node: 渲染的标签
      * @param {string} valueString: 获取属性值的表达式
-     * @datetime: 2023-01-12 15:02:45
      */
     renderSpecialForIf(node, valueString) {
         const valueFun = this.getValueFun(valueString);
@@ -722,10 +665,8 @@ export default class {
 
     /**
      * @description: 渲染-elif属性，当之前表达式值都为假且当前表达式值为真时渲染
-     * @author: 李永强
      * @param {Element} node: 渲染的标签
      * @param {string} valueString: 获取属性值的表达式
-     * @datetime: 2023-01-12 15:08:46
      */
     renderSpecialForElif(node, valueString){
         const valueFun = this.getValueFun(valueString);
@@ -759,10 +700,8 @@ export default class {
 
     /**
      * @description: 渲染-else属性，当之前表达式值都为假时渲染
-     * @author: 李永强
      * @param {Element} node: 渲染的标签
      * @param {string} valueString: 获取属性值的表达式
-     * @datetime: 2023-01-12 15:18:35
      */
     renderSpecialForElse(node){
         // 查看节点前一个节点是否为判断节点
@@ -794,10 +733,8 @@ export default class {
 
     /**
      * @description: 渲染-show属性，当表达式值都为真时显示
-     * @author: 李永强
      * @param {Element} node: 渲染的标签
      * @param {string} valueString: 获取属性值的表达式
-     * @datetime: 2023-01-12 16:44:10
      */
     renderSpecialForShow(node, valueString){
         const valueFun = this.getValueFun(valueString);
@@ -816,10 +753,8 @@ export default class {
 
     /**
      * @description: 渲染-html属性，数据将替换标签内部html
-     * @author: 李永强
      * @param {Element} node: 渲染的标签
      * @param {string} valueString: 获取属性值的表达式
-     * @datetime: 2023-02-03 11:12:24
      */
     renderSpecialForHTML(node, valueString){
         const valueFun = this.getValueFun(valueString);
@@ -848,10 +783,8 @@ export default class {
 
     /**
      * @description: 在节点存在于文档中时执行监听回调函数
-     * @author: 李永强
      * @param {function} callback: 回调函数
      * @param {node} node: 当前作用的节点
-     * @datetime: 2023-01-12 16:51:19
      */
     setLsnrctlCallback(callback, node) {
         Lsnrctl.callback = () => {
@@ -870,15 +803,13 @@ export default class {
         Lsnrctl.callback = null;
     }
 
-    /**
-     * @description: 根据表达式字符串通过标签的事件属性获取取值函数
-     * @author: 李永强
-     * @param {string} valueString: 取值表达式
-     * @return {function}: 取值函数
-     * @datetime: 2023-01-12 16:49:55
-     */
-    getValueFun(valueString) {
-        funDom.setAttribute('onclick', `return ({${this.dataKeys.join(',')}}, {${Object.keys(this.forData).join(',')}}) => (${valueString})`);
-        return funDom.onclick().bind(window, this.data, {...this.forData});
-    }
+    // /**
+    //  * @description: 根据表达式字符串通过标签的事件属性获取取值函数
+    //  * @param {string} valueString: 取值表达式
+    //  * @return {function}: 取值函数
+    //  */
+    // getValueFun(valueString) {
+    //     funDom.setAttribute('onclick', `return ({${this.dataKeys.join(',')}}, {${Object.keys(this.forData).join(',')}}) => (${valueString})`);
+    //     return funDom.onclick().bind(window, this.data, {...this.forData});
+    // }
 }

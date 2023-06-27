@@ -1,8 +1,4 @@
-const { Cheerio } = require('cheerio');
-
 module.exports = function (source) {
-    console.log(cheerio.load(source)('*'));
-
     const tags = [];
     {
         const tagStrings = source.replaceAll('`', '\\`').match(/<\s?(.*?)\b[^>]*>[\s\S]*<\/\1>/g);
@@ -16,7 +12,6 @@ module.exports = function (source) {
 
     let name = '';
     let html = '';
-    let style = '';
     let dataFunBody = '';
 
     // 遍历子节点查找对应节点
@@ -28,15 +23,18 @@ module.exports = function (source) {
                 .replace(/<\s?\/\s?script\s?>$/, '')
                 .trim();
         } else if (tagName.toUpperCase() === 'STYLE') {
-            style += outerHTML
-                .replace(/^<\s?style\s?>/, ' ')
-                .replace(/<\s?\/\s?style\s?>$/, ' ')
-                .replace(/\s+/g, ' ');
-        } else if (tagName.indexOf('-') > 0 || tagName[0].toUpperCase() === tagName[0]) {
+            html += outerHTML;
+        } else if (tagName.includes('-')) {
             const nameSplit = tagName.split(':');
-            const rootTagName = nameSplit[1] || 'div';
-            name = nameSplit[0].includes('-') ? nameSplit[0] : `app-${nameSplit[0]}`;
-            html += outerHTML.replace(new RegExp(`^<\\s?${tagName}`), `<${rootTagName}`).replace(new RegExp(`${tagName}\\s?>$`), `${rootTagName}>`);
+            if (name !== '' || nameSplit[0] === '') return;
+            name = nameSplit[0];
+            // html += outerHTML;
+            if(nameSplit.length > 1) {
+                const rootTagName = nameSplit[1];
+                html += outerHTML.replace(new RegExp(`^<\\s?${tagName}`), `<${rootTagName}`).replace(new RegExp(`${tagName}\\s?>$`), `${rootTagName}>`);
+            } else {
+                html += outerHTML.replace(new RegExp(`^<\\s*${tagName}(\\s.*?|)>`), '').replace(new RegExp(`<\\s?/\\s?${tagName}\\s?>$`), '');
+            }
         }
     });
 
@@ -50,16 +48,13 @@ module.exports = function (source) {
     return `
         import { createComponent } from 'setor';
         ${imports ? `${imports.join('\n')}` : '\n'}
-
+    
         createComponent({
-            name:
-\`${name}\`,
-            html:
-\`${html}\`,
-            style:
-\`${style}\`,
-            data(){
-${dataFunBody};
+            name: \`${name}\`,
+            html: \`${html}\`,
+            getValueFunFunctory(){
+                ${dataFunBody};
+                return (codeString) => eval(\`() => (\${codeString})\`);
             },
         });
     `;

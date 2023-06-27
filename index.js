@@ -1,15 +1,9 @@
 import Lsnrctl from './Lsnrctl';
 import Render from './Render';
-import uilt from './uilt';
-
-const { istype } = uilt;
 
 /** 样式添加结点 */
 const styleDom = document.createElement('style');
 document.head.appendChild(styleDom);
-
-/** 当前组件渲染的数据，用于router异步渲染 */
-let currentComponentData = null;
 
 /**
  * @description: 渲染根节点
@@ -18,26 +12,10 @@ let currentComponentData = null;
  * @param {undefined | string} object.style: 全局样式
  * @datetime: 2022-12-14 17:36:23
  */
-const createApp = ({ root, component }) => {
-    // 参数类型判断
-    if (!istype(root, 'string')) {
-        console.error('render的root参数应该存在并为string类型');
-        return;
-    }
-    if (!istype(component, 'string')) {
-        console.error('render的component参数应该存在并为string类型');
-        return;
-    }
-
-    const rootNode = document.querySelector(root);
-    if (!rootNode) {
-        console.error(`无法获取到元素: ${root}`);
-        return;
-    }
-
+const createApp = ({root, component}) => {
     const rootComponent = document.createElement(component);
-    rootNode.appendChild(rootComponent);
-    new Render(rootNode, {});
+    root.appendChild(rootComponent);
+    new Render(root, {});
 };
 
 /**
@@ -49,73 +27,39 @@ const createApp = ({ root, component }) => {
  * @param {undefined | string} object.style: 样式文本
  * @datetime: 2022-12-14 17:37:43
  */
-const createComponent = ({ name, html = '', data = () => {}, style = '' }) => {
-    // 参数类型判断
-    if (!istype(name, 'string')) {
-        console.error('Compoment的name参数应该存在并为string类型');
-        return;
-    }
-    if (!istype(html, 'string')) {
-        console.error('Compoment的html参数应该存在并为string类型');
-        return;
-    }
-    if (!istype(data, 'function')) {
-        console.error('Compoment的data参数应为 object 或 () => object 类型');
-        return;
-    }
-    if (!istype(style, 'string')) {
-        console.error('Compoment的style参数应该存在并为string类型');
-        return;
-    }
-
+const createComponent = ({ name, html, getValueFunFunctory }) => {
     // 检查组件是否被定义了
     if (customElements.get(name)) return;
 
-    // 添加style
-    if (style) {
-        styleDom.innerHTML += style.replace(/\s+/g, ' ');
+    // 更正组件名
+    if(!name.includes('-')) {
+        console.error(`组件名称中必须包含横线符号：${name}`);
+        return;
     }
 
-    // 更正组件名
-    const componentName = name.includes('-') ? name.toLowerCase() : `app-${name.toLowerCase()}`;
+    console.log(name,html);
 
+    // const contentRoot = document.createRange().createContextualFragment(html);
     // 处理组件标签重命名和自闭和标签
-    const filterHtml = html
-        .trim()
-        .replace(/((?<=<\s?)[A-Z](?=(.*?)\b[^>]*\/?>)|(?<=<\s?\/\s?)[A-Z](?=(.*?)\b[^>]*>))/g, (name) => `app-${name.toLowerCase()}`)
-        .replace(/<\s?[^\/]\s?(.*?)\b[^>]*>/g, (tagStart) => {
-            return tagStart.replace(/[a-zA-Z]*\s?=\s?('|").*?\1/g, (attr) => {
-                const [name, ...value] = attr.split('=');
-                return `${name.replace(/[A-Z]/g, (char) => `_${char.toUpperCase()}`)}=${value.join('=')}`;
-            });
-        });
+    // const filterHtml = html
+    //     .trim()
+    //     .replace(/((?<=<\s?)[A-Z](?=(.*?)\b[^>]*\/?>)|(?<=<\s?\/\s?)[A-Z](?=(.*?)\b[^>]*>))/g, (name) => `app-${name.toLowerCase()}`)
+    //     .replace(/<\s?[^\/]\s?(.*?)\b[^>]*>/g, (tagStart) => {
+    //         return tagStart.replace(/[a-zA-Z]*\s?=\s?('|").*?\1/g, (attr) => {
+    //             const [name, ...value] = attr.split('=');
+    //             return `${name.replace(/[A-Z]/g, (char) => `_${char.toUpperCase()}`)}=${value.join('=')}`;
+    //         });
+    //     });
 
     // 定义组件
     customElements.define(
-        componentName,
+        name,
         class extends HTMLElement {
             connectedCallback() {
                 // 创建内容节点
-                const contentRoot = document.createRange().createContextualFragment(filterHtml).childNodes[0];
-                contentRoot.setorComponentAttributes = this.attributes;
-                contentRoot.render = () => {
-                    // 监听数据
-                    const preData = data() || {};
-                    const allData = Lsnrctl.getProxyData(istype(preData, 'function') ? preData(contentRoot.retainAttrs || {}) : istype(preData, 'object') ? preData : {});
-
-                    // 删除节点的props保留属性
-                    delete contentRoot.retainAttrs;
-
-                    // 函数this指向data
-                    Object.entries(allData).forEach(([key, value]) => {
-                        if (istype(value, 'function')) allData[key] = value.bind(allData);
-                    });
-                    currentComponentData = allData;
-
-                    // 渲染节点
-                    new Render(contentRoot, allData);
-                    currentComponentData = null;
-                };
+                const contentRoot = document.createRange().createContextualFragment(html);
+                
+                new Render(contentRoot, getValueFunFunctory());
 
                 // 替换节点
                 this.parentNode.replaceChild(contentRoot, this);
@@ -133,11 +77,6 @@ const store = ((storeData) => ({
      * @datetime: 2023-01-13 11:37:36
      */
     init(data) {
-        if (!istype(data, 'Object')) {
-            console.error(`store.init参数应为简单对象`);
-            return;
-        }
-
         Object.entries(data).forEach(([key, value]) => {
             storeData[key] = value;
         });
@@ -331,28 +270,28 @@ const router = (() => {
      * @datetime: 2023-01-18 16:53:47
      */
     const to = ({ path, query, params: newParams }) => {
-        const queryString = istype(query, 'Object')
-            ? `?${Object.entries(query)
-                  .map(([key, value]) => `${key}=${value}`)
-                  .join('&')}`
-            : '';
-        location.hash = `#/${path}${queryString}`;
+        // const queryString = istype(query, 'Object')
+        //     ? `?${Object.entries(query)
+        //           .map(([key, value]) => `${key}=${value}`)
+        //           .join('&')}`
+        //     : '';
+        // location.hash = `#/${path}${queryString}`;
 
-        // 更新隐形路由参数
-        istype(params, 'Object') &&
-            Object.entries(params).forEach(([key, value]) => {
-                if (!newParams.hasOwnProperty(key)) {
-                    delete params[key];
-                } else if (value !== newParams[key]) {
-                    params[key] = newParams[key];
-                }
-            });
-        istype(newParams, 'Object') &&
-            Object.entries(newParams).forEach(([key, value]) => {
-                if (!params.hasOwnProperty(key)) {
-                    params[key] = newParams[key];
-                }
-            });
+        // // 更新隐形路由参数
+        // istype(params, 'Object') &&
+        //     Object.entries(params).forEach(([key, value]) => {
+        //         if (!newParams.hasOwnProperty(key)) {
+        //             delete params[key];
+        //         } else if (value !== newParams[key]) {
+        //             params[key] = newParams[key];
+        //         }
+        //     });
+        // istype(newParams, 'Object') &&
+        //     Object.entries(newParams).forEach(([key, value]) => {
+        //         if (!params.hasOwnProperty(key)) {
+        //             params[key] = newParams[key];
+        //         }
+        //     });
     };
 
     return {
